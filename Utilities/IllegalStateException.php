@@ -13,12 +13,12 @@ use \RuntimeException;
  */
 class IllegalStateException extends RuntimeException
 {
-	/**
-	 * Gets the string representation of the exception.
-	 * @return string The exception in string form.
-	 */
-	public function __toString()
-	{
-		return 'Illegal System State: ' . parent::__toString();
-	}
+    /**
+     * Gets the string representation of the exception.
+     * @return string The exception in string form.
+     */
+    public function __toString()
+    {
+        return 'Illegal System State: ' . parent::__toString();
+    }
 }

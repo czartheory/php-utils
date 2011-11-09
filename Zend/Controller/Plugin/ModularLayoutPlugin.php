@@ -14,6 +14,6 @@ class ModularLayoutPlugin extends \Zend_Controller_Plugin_Abstract
 		$layout->setLayout($module);
 
 		$view = \Zend_Controller_Front::getInstance()->getParam('bootstrap')->getResource('view');
-//		$view->headLink()->appendStylesheet("/styles/$module.css");
+		$view->headLink()->appendStylesheet("/styles/$module.css");
 	}
 }
