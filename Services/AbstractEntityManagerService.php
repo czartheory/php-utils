@@ -1,6 +1,6 @@
 <?php
 
-namespace CzarTheory\Doctrine;
+namespace CzarTheory\Services;
 
 use Doctrine\ORM\EntityManager;
 
