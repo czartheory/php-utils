@@ -32,7 +32,7 @@ abstract class AbstractRestfulController extends \Zend_Controller_Action
 		$view = $this->view;
 		$this->_httpMethod = $method;
 		$view->restfulService = $service;
-
+		
 		switch($method) {
 			case 'get':
 				if(null !== $id) $view->entityService = $service->get($id);
@@ -48,7 +48,11 @@ abstract class AbstractRestfulController extends \Zend_Controller_Action
 					$this->_response->setHttpResponseCode(400);
 
 				} elseif(!$service->canCreate()){
-					$view->error = "User is Not Authorized";
+					$view->error = array(
+						'message' => "User is Not Authorized",
+						'class' => get_class($service),
+						'method' => 'create',
+					);
 					$this->_response->setHttpResponseCode(403);
 
 				} else {
@@ -71,7 +75,11 @@ abstract class AbstractRestfulController extends \Zend_Controller_Action
 					$this->_response->setHttpResponseCode(400);
 
 				} elseif(!$service->canUpdate($id)){
-					$view->error= "user is Not Authorized";
+					$view->error = array(
+						'message' => "User is Not Authorized",
+						'class' => get_class($service),
+						'method' => 'update',
+					);
 					$this->_response->setHttpResponseCode(403);
 
 				} else {
@@ -85,7 +93,11 @@ abstract class AbstractRestfulController extends \Zend_Controller_Action
 					$this->_response->setHttpResponseCode(400);
 
 				} elseif (!$service->canDelete($id)){
-					$view->error = "User is Not Authorized";
+					$view->error = array(
+						'message' => "User is Not Authorized",
+						'class' => get_class($service),
+						'method' => 'update',
+					);
 					$this->_response->setHttpResponseCode(403);
 
 				} else {

@@ -18,6 +18,10 @@ class AcceptHeaderPlugin extends \Zend_Controller_Plugin_Abstract
 				$request->setParam('format', 'xml');
 			break;
 		
+			case (strstr($header, 'text/csv') && (!strstr($header, 'html'))):
+				$request->setParam('format', 'csv');
+			break;
+		
 			default:
 			break;
 		}
