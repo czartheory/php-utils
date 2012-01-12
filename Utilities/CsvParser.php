@@ -10,52 +10,15 @@ namespace CzarTheory\Utilities;
  * THIS CODE IS BASED UPON THE FOLLOWING:
  * Class: parseCSV v0.3.2
  * http://code.google.com/p/parsecsv-for-php/
- * Fully conforms to the specifications lined out on wikipedia:
- *  - http://en.wikipedia.org/wiki/Comma-separated_values
- * 
- * Based on the concept of Ming Hong Ng's CsvFileParser class:
- *  - http://minghong.blogspot.com/2006/07/csv-parser-for-php.html
- *
- *  Copyright (c) 2007 Jim Myhrberg (jim@zydev.info).
- *
- *  Permission is hereby granted, free of charge, to any person obtaining a copy
- *  of this software and associated documentation files (the "Software"), to deal
- *  in the Software without restriction, including without limitation the rights
- *  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- *  copies of the Software, and to permit persons to whom the Software is
- *  furnished to do so, subject to the following conditions:
- *  
- *  The above copyright notice and this permission notice shall be included in
- *  all copies or substantial portions of the Software.
- *
- *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- *  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- *  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- *  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- *  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- *  THE SOFTWARE.
  */
 
 class CsvParser
 {
-	/**
-	 * delimiter between fields
-	 * @var string
-	 */
+	/** @var string delimiter between fields */
 	private $delimiter = ',';
 
-	/**
-	 * enclosing character for fields
-	 * @var string
-	 */
+	/** @var string enclosing character for fields */
 	private $enclosure = '"';
-
-	/**
-	 * basic SQL-like conditions for row matching
-	 * @var string
-	 */
-	private $conditions = null;
 
 	/** @var boolean */
 	private $convertEncoding = false;
@@ -73,42 +36,25 @@ class CsvParser
 	private $rawData;
 
 	/** @var integer */
-	private $length;
-
-	/** @var integer */
 	private $cursor = 0;
 
 	/** @var integer */
 	private $rowsLoaded = 0;
 
-	/**
-	 * Array of values from header-row
-	 * @var array
-	 */
+	/** @var array Array of values from header-row */
 	private $schema = null;
 
-	/**
-	 * two dimentional array of parsed data
-	 * @var array
-	 */
+	/** @var array two dimentional array of parsed data */
 	private $parsedData = array();
 
 	/**
 	 * Constructor
-	 *
 	 * @param string $input can be either a file name or string of csv-text
-	 * @param int $limit the number of total rows to parse. null means all rows. optional
-	 * @param string $conditions conditions to be used???. optional
 	 */
-	public function __construct($input, $conditions = null)
+	public function __construct($input)
 	{
 		if(is_readable($input)) $this->_loadFile($input);
 		else $this->rawData = $input;
-
-		$this->length = strlen($this->rawData);
-
-		$conditions = trim($conditions);
-		if(!empty($conditions)) $this->conditions = $conditions;
 	}
 
 	/**
@@ -128,8 +74,7 @@ class CsvParser
 
 	/**
 	 * Gets the header-row of the document
-	 * 
-	 * If this method is called, 
+	 * If this method is called, all data-rows will be parsed as associative arrays instead of indexed arrays
 	 *
 	 * @return array The header row 
 	 */
@@ -139,273 +84,135 @@ class CsvParser
 			if($this->rowsLoaded > 0) throw new \InvalidArgumentException("Cannot get header row after data has been parsed");
 			$row = null;
 			do {
-				$row = $this->_getNextRow();
+				$row = $this->_getRawRow();
 				if($row === null) throw new \InvalidArgumentException("No data found in parse");
-			} while($this->hasData($row));
-
+				$row = $this->_parseRawRow($row, false);
+			} while(!empty($row));
 			$this->schema = $row;
 		}
 		return $this->schema;
 	}
 
 	/**
-	 * Gets the next row of data
-	 * @return array the data pulled from the row or null if the cursor reaches the end of the file
+	 * Gets the next row in the CSV data
+	 * 
+	 * If getHeaderRow() was called previously, the row will 
+	 * be converted to an associative array. Blank rows are skipped
+	 *
+	 * @return array the row found or null if at the end of the file
 	 */
-	private function _getNextRow()
+	public function getNextRow()
 	{
-		$cursor = $this->cursor;
-		$length = $this->length;
+		$row = null;
+		do {
+			$raw = $this->_getRawRow();
+			if($raw === null) return null;
+			$row = $this->_parseRawRow($raw);
+		} while(!empty($row));
+
+		if($this->schema !== null) {
+			$rawRow = $row;
+			$row = array();
+			$size = count($this->schema);
+			for($i = 0; $i < $size; $i++) {
+				$key = $this->schema[i];
+				$row[$key] = $rawRow[i];
+			}
+		}
+		$this->parsedData[] = $row;
+		return $row;
+	}
+
+	/**
+	 * Gets the next row of data
+	 * @return string the unparsed row, including rows with enclosed linebreaks
+	 */
+	private function _getRawRow()
+	{
+		$lineEnd = function($char, $previousChar, $nextChar = null) {
+				return ($char == "\r" || ($char == "\n" && $prevChar != "\r"));
+			};
+
+		$result = $this->_getRawUntil($lineEnd, $this->rawData, $this->cursor);
+		$this->cursor = $result[1];
+		return $result[0];
+	}
+
+	/**
+	 * Get raw data until a specified $checkFunction states that a delimiter has been found
+	 *
+	 * @param callback $checkFunction the function($char, $prev, $next) to decide if parsing is done.
+	 * @param string $input
+	 * @param integer $startCursor
+	 * @return array (the raw string, the final cursor position) 
+	 */
+	private function _getRawUntil($checkFunction, $input, $startCursor)
+	{
+		$cursor = $startCursor;
+		$length = $strlen($input);
+		$data = $input;
+
+		$enclosure = $this->enclosure;
 		if($cursor >= $length) return null;
 
-		$data = $this->rawData;
-		$lineEndFound = false;
+		$terminationFound = false;
 		$enclosed = false;
 		$wasEnclosed = false;
 
 		$char = false;
 		$nextChar = $data{$cursor};
 		$prevChar = false;
-		$line = "";
+		$result = "";
 
-		while(!$lineEndFound && $cursor < $this->length) {
+		while(!$terminationFound && $cursor < $length) {
 			$prevChar = $char;
 			$char = $nextChar;
 			$cursor++;
 			$nextChar = ($cursor < $length) ? $data{$cursor} : false;
-			$line.= $char;
+			$result.= $char;
 
-			if($char == $this->enclosure) && (!$enclosed || $nextChar != $this->enclosure)) {
-				// open and closing quotes
+			// open and closing quotes
+			if($char == $enclosure && ($nextChar != $enclosure || !$enclosed)) {
 				$enclosed = !$enclosed;
 				if($enclosed) $wasEnclosed = true;
 
-			} elseif(($char == $this->delimiter || ($char == "\n" && $prevChar != "\r") || $char == "\r") &&!$enclosed) {
-				// end of field/row
-				if(!$wasEnclosed) $line = trim($line);
-				$key = (!empty($head[$col]) ) ? $head[$col] : $col;
-				$row[$key] = $line;
-				$line = '';
-				$col++;
-
-				// end of row
-				if($char == "\n" || $char == "\r") {
-					if($this->_validateRowOffest($rowCount) && $this->_validateRowConditions($row, $this->conditions)) {
-						if($this->heading && empty($head)) {
-							$head = $row;
-						} elseif(empty($this->fields) || (!empty($this->fields) && (($this->heading && $rowCount > 0) || !$this->heading))) {
-							if(!empty($this->sortBy) && !empty($row[$this->sortBy])) {
-								if(isset($rows[$row[$this->sortBy]])) {
-									$rows[$row[$this->sortBy] . '_0'] = &$rows[$row[$this->sortBy]];
-									unset($rows[$row[$this->sortBy]]);
-									for($sn = 1; isset($rows[$row[$this->sortBy] . '_' . $sn]); $sn++) {
-										
-									}
-									$rows[$row[$this->sortBy] . '_' . $sn] = $row;
-								} else $rows[$row[$this->sortBy]] = $row;
-							} else $rows[] = $row;
-						}
-					}
-					$row = array();
-					$col = 0;
-					$rowCount++;
-					if($this->sortBy === null && $this->limit !== null && count($rows) == $this->limit) {
-						$cursor = $dataLength;
-					}
-				}
-
-				// append character to current field
-			} else {
-				$line .= $char;
+				// check for end of row
+			} elseif(!$enclosed && $checkFunction($char, $prevChar, $nextChar)) {
+				$terminationFound = true;
 			}
 		}
+		return array(trim($result), $cursor, $wasEnclosed);
 	}
 
 	/**
-	 * Parse CSV string into a 2D array
 	 *
-	 * @param string $data CSV-formatted string
-	 * @return type 
+	 * @param type $raw the raw-string unparsed row
+	 * @return array the fields in sequence
 	 */
-	private function _parseString($data)
+	private function _parseRawRow($raw)
 	{
-
-		$rows = array();
 		$row = array();
-		$rowCount = 0;
-		$current = '';
-		$head = (!empty($this->fields)) ? $this->fields : array();
-		$col = 0;
-		$enclosed = false;
-		$wasEnclosed = false;
-		$dataLength = strlen($data);
+		$cursor = 0;
+		$length = strlen($raw);
+		$enclosure = $this->enclosure;
+		if($cursor == $length) return null;
 
-		// walk through each character
-		for($i = 0; $i < $dataLength; $i++) {
-			$char = $data{$i};
-			$nextChar = ( isset($data{$i + 1}) ) ? $data{$i + 1} : false;
-			$prevChar = ( isset($data{$i - 1}) ) ? $data{$i - 1} : false;
+		$delimiter = $this->delimiter;
+		$checkFunction = function ($char, $prev = null, $next = null) use ($delimiter) {
+				return ($char == $delimiter);
+			};
 
-			// open and closing quotes
-			if($char == $this->enclosure && (!$enclosed || $nextChar != $this->enclosure)) {
-				$enclosed = ($enclosed) ? false : true;
-				if($enclosed) $wasEnclosed = true;
+		while($cursor < $length) {
+			$ret = $this->_getRawUntil($checkFunction, $raw, $cursor);
+			if($ret === null) break;
+			$field = $ret[0];
+			$cursor = $ret[1];
+			$wasEnclosed = $ret[2];
+			if($wasEnclosed) $field = substr($field, 1, strlen($field) - 2);
 
-				// inline quotes	
-			} elseif($char == $this->enclosure && $enclosed) {
-				$current .= $char;
-				$i++;
-
-				// end of field/row
-			} elseif(($char == $this->delimiter || ($char == "\n" && $prevChar != "\r") || $char == "\r") && !$enclosed) {
-				if(!$wasEnclosed) $current = trim($current);
-				$key = (!empty($head[$col]) ) ? $head[$col] : $col;
-				$row[$key] = $current;
-				$current = '';
-				$col++;
-
-				// end of row
-				if($char == "\n" || $char == "\r") {
-					if($this->_validateRowOffest($rowCount) && $this->_validateRowConditions($row, $this->conditions)) {
-						if($this->heading && empty($head)) {
-							$head = $row;
-						} elseif(empty($this->fields) || (!empty($this->fields) && (($this->heading && $rowCount > 0) || !$this->heading))) {
-							if(!empty($this->sortBy) && !empty($row[$this->sortBy])) {
-								if(isset($rows[$row[$this->sortBy]])) {
-									$rows[$row[$this->sortBy] . '_0'] = &$rows[$row[$this->sortBy]];
-									unset($rows[$row[$this->sortBy]]);
-									for($sn = 1; isset($rows[$row[$this->sortBy] . '_' . $sn]); $sn++) {
-										
-									}
-									$rows[$row[$this->sortBy] . '_' . $sn] = $row;
-								} else $rows[$row[$this->sortBy]] = $row;
-							} else $rows[] = $row;
-						}
-					}
-					$row = array();
-					$col = 0;
-					$rowCount++;
-					if($this->sortBy === null && $this->limit !== null && count($rows) == $this->limit) {
-						$i = $dataLength;
-					}
-				}
-
-				// append character to current field
-			} else {
-				$current .= $char;
-			}
+			$row[] = $field;
 		}
-		$this->schema = $head;
-		if(!empty($this->sortBy)) {
-			( $this->sortReverse ) ? krsort($rows) : ksort($rows);
-			if($this->offset !== null || $this->limit !== null) {
-				$rows = array_slice($rows, ($this->offset === null ? 0 : $this->offset), $this->limit, true);
-			}
-		}
-		return $rows;
-	}
-
-	/**
-	 * Validate a row against specified conditions
-	 * @param   row          array with values from a row
-	 * @param   conditions   specified conditions that the row must match 
-	 * @return  true of false
-	 */
-	private function _validateRowConditions($row = array(), $conditions = null)
-	{
-		if(!empty($row)) {
-			if(!empty($conditions)) {
-				$conditions = (strpos($conditions, ' OR ') !== false) ? explode(' OR ', $conditions) : array($conditions);
-				$or = '';
-				foreach($conditions as $key => $value) {
-					if(strpos($value, ' AND ') !== false) {
-						$value = explode(' AND ', $value);
-						$and = '';
-						foreach($value as $k => $v) {
-							$and .= $this->_validateRowCondition($row, $v);
-						}
-						$or .= (strpos($and, '0') !== false) ? '0' : '1';
-					} else {
-						$or .= $this->_validateRowCondition($row, $value);
-					}
-				}
-				return (strpos($or, '1') !== false) ? true : false;
-			}
-			return true;
-		}
-		return false;
-	}
-
-	/**
-	 * Validate a row against a single condition
-	 * @param   row          array with values from a row
-	 * @param   condition   specified condition that the row must match 
-	 * @return  true of false
-	 */
-	private function _validateRowCondition($row, $condition)
-	{
-		$operators = array(
-			'=', 'equals', 'is',
-			'!=', 'is not',
-			'<', 'is less than',
-			'>', 'is greater than',
-			'<=', 'is less than or equals',
-			'>=', 'is greater than or equals',
-			'contains',
-			'does not contain',
-		);
-		$operators_regex = array();
-		foreach($operators as $value) {
-			$operators_regex[] = preg_quote($value, '/');
-		}
-		$operators_regex = implode('|', $operators_regex);
-		if(preg_match('/^(.+) (' . $operators_regex . ') (.+)$/i', trim($condition), $capture)) {
-			$field = $capture[1];
-			$op = $capture[2];
-			$value = $capture[3];
-			if(preg_match('/^([\'\"]{1})(.*)([\'\"]{1})$/i', $value, $capture)) {
-				if($capture[1] == $capture[3]) {
-					$value = $capture[2];
-					$value = str_replace("\\n", "\n", $value);
-					$value = str_replace("\\r", "\r", $value);
-					$value = str_replace("\\t", "\t", $value);
-					$value = stripslashes($value);
-				}
-			}
-			if(array_key_exists($field, $row)) {
-				if(($op == '=' || $op == 'equals' || $op == 'is') && $row[$field] == $value) {
-					return '1';
-				} elseif(($op == '!=' || $op == 'is not') && $row[$field] != $value) {
-					return '1';
-				} elseif(($op == '<' || $op == 'is less than' ) && $row[$field] < $value) {
-					return '1';
-				} elseif(($op == '>' || $op == 'is greater than') && $row[$field] > $value) {
-					return '1';
-				} elseif(($op == '<=' || $op == 'is less than or equals' ) && $row[$field] <= $value) {
-					return '1';
-				} elseif(($op == '>=' || $op == 'is greater than or equals') && $row[$field] >= $value) {
-					return '1';
-				} elseif($op == 'contains' && preg_match('/' . preg_quote($value, '/') . '/i', $row[$field])) {
-					return '1';
-				} elseif($op == 'does not contain' && !preg_match('/' . preg_quote($value, '/') . '/i', $row[$field])) {
-					return '1';
-				} else {
-					return '0';
-				}
-			}
-		}
-		return '1';
-	}
-
-	/**
-	 * Validates if the row is within the offset or not if sorting is disabled
-	 * @param   current_row   the current row number being processed
-	 * @return  true of false
-	 */
-	private function _validateRowOffest($current_row)
-	{
-		if($this->sortBy === null && $this->offset !== null && $current_row < $this->offset) return false;
-		return true;
+		return $row;
 	}
 }
 
