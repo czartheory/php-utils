@@ -27,10 +27,10 @@ class ExsistingEntityProperty extends \Zend_Validate_Abstract
 	/** @var string */
 	protected $_entity;
 
-	const MSG_EXISTS = 'msgExists';
+	const MSG_MATCH = 'msgExists';
 
 	protected $_messageTemplates = array(
-		self::MSG_EXISTS => "'%value%' isn't an available option. Please choose a different value.",
+		self::MSG_MATCH => "'%value%' isn't an available option. Please choose a different value.",
 	);
 
 	/**
@@ -54,7 +54,7 @@ class ExsistingEntityProperty extends \Zend_Validate_Abstract
 	 */
 	public function setInvalidMessage($message)
 	{
-		$this->_messageTemplates[self::MSG_EXISTS] = $message;
+		$this->_messageTemplates[self::MSG_MATCH] = $message;
 	}
 
 	/**
@@ -78,7 +78,7 @@ class ExsistingEntityProperty extends \Zend_Validate_Abstract
 
 		$existing = $this->_repository->findOneBy(array($this->_propertyName => $value));
 		if($existing == null) {
-			$this->_error(self::MSG_EXISTS);
+			$this->_error(self::MSG_MATCH);
 			return false;
 		}
 		return true;

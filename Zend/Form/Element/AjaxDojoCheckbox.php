@@ -7,10 +7,22 @@
 namespace CzarTheory\Zend\Form\Element;
 
 /**
- * Description of Checkbox
+ * Description of AjaxDojoCheckbox
+ * 
+ * This checkbox element mimics the Zend_Dojo Checkbox. However, it has one
+ * keen difference: It allows for false values to be effectively sent from 
+ * the client side. When doing ajax-style requests (especially when populating
+ * forms dynamically with javascript), setting a checkbox unchecked means that
+ * the form will actually be sent without a value at all! Using this element
+ * will prevent that. 
+ * 
+ * NOTE: To use this element, you must have the CzarTheory JS submodule configured
+ * correctly. You also must have DOJO configured correctly to allow for 3rd-party
+ * widgets and other dojo-classes.
+ * 
  * @author Matthew Larson <matthew@czarTheory.com>
  */
-class Checkbox extends \Zend_Form_Element
+class AjaxDojoCheckbox extends \Zend_Form_Element
 {
 	/**
 	 * Is the checkbox checked?
