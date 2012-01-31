@@ -3,18 +3,20 @@
 namespace CzarTheory\Doctrine\Zend;
 
 use CzarTheory\Utilities\Cryptography;
+use Doctrine\ORM\EntityManager;
+use Doctrine\ORM\EntityRepository;
 
 class EntityAuthenticationAdapter implements \Zend_Auth_Adapter_Interface
 {
 	/**
 	 * connection to database
-	 * @var Doctrine\ORM\EntityManager
+	 * @var EntityManager
 	 */
 	protected $_entityManager = null;
 
 	/**
 	 * entityRepository to be used to get entities
-	 * @var Doctrine\ORM\EntityRepository
+	 * @var EntityRepository
 	 */
 	protected $_entityRepository = null;
 
@@ -42,90 +44,57 @@ class EntityAuthenticationAdapter implements \Zend_Auth_Adapter_Interface
 	 */
 	protected $_saltGetMethod = null;
 
-	/**
-	 * @var string
-	 */
+	/** @var string */
 	protected $_username = null;
 
-	/**
-	 * @var string
-	 */
+	/** @var string */
 	protected $_password = null;
 
-	/**
-	 * @var array
-	 */
+	/** @var array */
 	protected $_authenticateResultInfo = null;
 
-	/**
-	 * @var Object
-	 */
+	/** @var Object */
 	protected $_resultEntity = null;
 
 	/**
 	 * Intitializes the Entity Authentication Adapter
-	 * @param \Doctrine\ORM\EntityManager $entityManager
+	 * @param EntityManager $entityManager
 	 * @param string $entityName The class name of the entity which contains the authentication data.
 	 * @param string $usernameGetMethod The
 	 * @param string $usernamePropertyName
 	 * @param string $passwordGetMethod
 	 * @param string $saltGetMethod
 	 */
-	public function __construct(\Doctrine\ORM\EntityManager $entityManager, $entityName, $usernameGetMethod, $usernamePropertyName,
-							 $passwordGetMethod, $saltGetMethod)
+	public function __construct(
+				EntityManager $entityManager,
+				$entityName,
+				$usernameGetMethod,
+				$usernamePropertyName,
+				$passwordGetMethod,
+				$saltGetMethod)
 	{
-		if (!isset($entityName))
-		{
-			throw new \InvalidArgumentException('Missing required argument: $entityName');
-		}
-		elseif (!class_exists($entityName))
-		{
+		if (!class_exists($entityName)) {
 			throw new \InvalidArgumentException('Could not find a the specified entity class: ' . $entityName);
 		}
 
-		if (!isset($usernameGetMethod))
-		{
-			throw new \InvalidArgumentException('Missing required argument: $usernameGetMethod');
-		}
-		elseif (!method_exists($entityName, $usernameGetMethod))
-		{
+		if (!method_exists($entityName, $usernameGetMethod)) {
 			throw new \InvalidArgumentException('Could not find the username get method for the specified entity class: ' . $entityName . '::' . $usernameGetMethod);
 		}
 
-		if (!isset($usernamePropertyName))
-		{
-			throw new \InvalidArgumentException('Missing required argument: $usernamePropertyName');
-		}
-		elseif (!property_exists($entityName, $usernamePropertyName))
-		{
+		if (!property_exists($entityName, $usernamePropertyName)) {
 			throw new \InvalidArgumentException('Could not find the username property for the specified entity class: ' . $entityName . '::' . $usernamePropertyName);
 		}
 
-		if (!isset($passwordGetMethod))
-		{
-			throw new \InvalidArgumentException('Missing required argument: $passwordGetMethod');
-		}
-		elseif (!method_exists($entityName, $passwordGetMethod))
-		{
+		if (!method_exists($entityName, $passwordGetMethod)) {
 			throw new \InvalidArgumentException('Could not find the password get method for the specified entity class: ' . $entityName . '::' . $passwordGetMethod);
 		}
 
-		if (!isset($saltGetMethod))
-		{
-			throw new \InvalidArgumentException('Missing required argument: $saltGetMethod');
-		}
-		elseif (!method_exists($entityName, $saltGetMethod))
-		{
+		if (!method_exists($entityName, $saltGetMethod)) {
 			throw new \InvalidArgumentException('Could not find the salt get method for the specified entity class: ' . $entityName . '::' . $saltGetMethod);
 		}
 
 		$this->_entityManager = $entityManager;
 		$this->_entityRepository = $this->_entityManager->getRepository($entityName);
-		if (null === $this->_entityRepository)
-		{
-			throw new \InvalidArgumentException('Could not find a repository for the specified entity name: ' . $entityName);
-		}
-
 		$this->_usernameGetMethod = $usernameGetMethod;
 		$this->_usernamePropertyName = $usernamePropertyName;
 		$this->_passwordGetMethod = $passwordGetMethod;
@@ -134,37 +103,24 @@ class EntityAuthenticationAdapter implements \Zend_Auth_Adapter_Interface
 
 	/**
 	 * Sets the username to use for authentication.
-	 *
 	 * @param string $username
 	 */
 	public function setUsername($username)
 	{
-		if (!isset($username))
-		{
-			throw new \InvalidArgumentException('Missing required argument: $username');
-		}
-
 		$this->_username = $username;
 	}
 
 	/**
 	 * Sets the password to use for authentication.
-	 *
 	 * @param string $password
 	 */
 	public function setPassword($password)
 	{
-		if (!isset($password))
-		{
-			throw new \InvalidArgumentException('Missing required argument: $password');
-		}
-
 		$this->_password = $password;
 	}
 
 	/**
 	 * Gets the authenticated doctrine entity.
-	 *
 	 * @return Object
 	 */
 	public function getResultEntity()
@@ -186,12 +142,9 @@ class EntityAuthenticationAdapter implements \Zend_Auth_Adapter_Interface
 		$this->_authenticateSetup();
 		$authResult = $this->_authenticateCreateAuthResult();
 		$entities = $this->_authenticateRetrieveEntities();
-		if (!$this->_authenticateValidateResultSet($entities))
-		{
+		if (!$this->_authenticateValidateResultSet($entities)) {
 			$authResult = $this->_authenticateCreateAuthResult();
-		}
-		else
-		{
+		} else {
 			$authResult = $this->_authenticateValidateResult(array_shift($entities));
 		}
 
@@ -200,25 +153,18 @@ class EntityAuthenticationAdapter implements \Zend_Auth_Adapter_Interface
 
 	/**
 	 * Ensures that this instances is properly configured with all required peices of information (i.e. username and password).
-	 *
 	 * @throws \Zend_Auth_Adapter_Exception - in the event that setup was not done properly
 	 */
 	protected function _authenticateSetup()
 	{
 		$error = null;
 
-		if (!isset($this->_username))
-		{
-			$error = 'A value for the username was not provided prior to authentication.';
-		}
-		elseif (null === $this->_password)
-		{
-			$error = 'A password value was not provided prior to authentication.';
+		if (!isset($this->_username)) {
+			throw new \Zend_Auth_Adapter_Exception('A value for the username was not provided prior to authentication.');
 		}
 
-		if (null !== $error)
-		{
-			throw new \Zend_Auth_Adapter_Exception($error);
+		if (null === $this->_password) {
+			throw new \Zend_Auth_Adapter_Excaption('A password value was not provided prior to authentication.');
 		}
 
 		$this->_authenticateResultInfo = array(
@@ -236,12 +182,9 @@ class EntityAuthenticationAdapter implements \Zend_Auth_Adapter_Interface
 	 */
 	protected function _authenticateRetrieveEntities()
 	{
-		try
-		{
+		try {
 			$entities = $this->_entityRepository->findBy(array($this->_usernamePropertyName => $this->_username));
-		}
-		catch (Exception $e)
-		{
+		} catch (Exception $e) {
 			throw new \Zend_Auth_Adapter_Exception('The supplied entity manager failed to get results from the repository.', 0, $e);
 		}
 
@@ -259,18 +202,13 @@ class EntityAuthenticationAdapter implements \Zend_Auth_Adapter_Interface
 	{
 		$count = count($entities);
 		$result = false;
-		if ($count < 1)
-		{
+		if ($count < 1) {
 			$this->_authenticateResultInfo['code'] = \Zend_Auth_Result::FAILURE_IDENTITY_NOT_FOUND;
 			$this->_authenticateResultInfo['messages'][] = 'A record with the supplied identity could not be found.';
-		}
-		elseif (count($entities) > 1)
-		{
+		} elseif (count($entities) > 1) {
 			$this->_authenticateResultInfo['code'] = \Zend_Auth_Result::FAILURE_IDENTITY_AMBIGUOUS;
 			$this->_authenticateResultInfo['messages'][] = 'More than one record matches the supplied identity.';
-		}
-		else
-		{
+		} else {
 			$this->_resultEntity = $entities[0];
 			$result = true;
 		}
@@ -294,13 +232,10 @@ class EntityAuthenticationAdapter implements \Zend_Auth_Adapter_Interface
 		$hashedPassword = Cryptography::encryptPassword($this->_password, $entitySalt);
 		$entityCredential = $entityPassword;
 
-		if ($hashedPassword != $entityCredential)
-		{
+		if ($hashedPassword != $entityCredential) {
 			$this->_authenticateResultInfo['code'] = \Zend_Auth_Result::FAILURE_CREDENTIAL_INVALID;
 			$this->_authenticateResultInfo['messages'][] = 'Supplied credential is invalid.';
-		}
-		else
-		{
+		} else {
 			$this->_authenticateResultInfo['code'] = \Zend_Auth_Result::SUCCESS;
 			$this->_authenticateResultInfo['messages'][] = 'Authentication successful.';
 		}
@@ -310,7 +245,6 @@ class EntityAuthenticationAdapter implements \Zend_Auth_Adapter_Interface
 
 	/**
 	 * Creates a Zend_Auth_Result object from the information collected in the authentication result info array.
-	 *
 	 * @return \Zend_Auth_Result
 	 */
 	protected function _authenticateCreateAuthResult()
