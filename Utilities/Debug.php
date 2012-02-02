@@ -12,12 +12,13 @@ namespace CzarTheory\Utilities;
  */
 class Debug
 {
+
 	/** @var string */
 	protected static $_sapi = null;
 
 	/** @var int The maximum depth for doctrine entities */
 	protected static $_depth = 2;
-	
+
 	/**
 	 * Get the current value of the debug output environment.
 	 * This defaults to the value of PHP_SAPI.
@@ -26,7 +27,7 @@ class Debug
 	 */
 	public static function getSapi()
 	{
-		if(self::$_sapi === null) {
+		if (self::$_sapi === null) {
 			self::$_sapi = PHP_SAPI;
 		}
 		return self::$_sapi;
@@ -74,12 +75,12 @@ class Debug
 
 		// neaten the newlines and indents
 		$output = preg_replace("/\]\=\>\n(\s+)/m", "] => ", $output);
-		if(self::getSapi() == 'cli') {
+		if (self::getSapi() == 'cli') {
 			$output = PHP_EOL . $label
 				. PHP_EOL . $output
 				. PHP_EOL;
 		} else {
-			if(!extension_loaded('xdebug')) {
+			if (!extension_loaded('xdebug')) {
 				$output = htmlspecialchars($output, ENT_QUOTES);
 			}
 
@@ -89,9 +90,10 @@ class Debug
 				. '</pre>';
 		}
 
-		if($echo) {
+		if ($echo) {
 			echo($output);
 		}
 		return $output;
 	}
+
 }
