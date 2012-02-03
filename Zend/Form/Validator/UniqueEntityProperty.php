@@ -13,7 +13,7 @@ use Doctrine\ORM\EntityRepository;
  * Description of UniqueEntityProperty
  *
  * This validator checks to see if a given property of a given Entity-type is unique
- * Validates if a desired property is available. 
+ * Validates if a desired property is available.
  */
 class UniqueEntityProperty extends \Zend_Validate_Abstract
 {
@@ -25,7 +25,7 @@ class UniqueEntityProperty extends \Zend_Validate_Abstract
 	protected $_propertyName;
 
 	/** @var Entity */
-	protected $_entity;
+	protected $_entityId;
 
 	const MSG_UNIQUE = 'msgUnique';
 
@@ -39,13 +39,13 @@ class UniqueEntityProperty extends \Zend_Validate_Abstract
 	 * @param EntityManager $em the doctrine EntityManager to connect with
 	 * @param string $entityName the fully qualified class name of the entity
 	 * @param string $propertyName the property name in question
-	 * @param string $entity (optional) the existing entity in question.
+	 * @param string $entityId (optional) the id of an existing entity (when modifying)
 	 */
-	public function __construct(EntityManager $em, $entityName, $propertyName, $entity = null)
+	public function __construct(EntityManager $em, $entityName, $propertyName, $entityId = null)
 	{
 		$this->_repository = $em->getRepository($entityName);
 		$this->_propertyName = $propertyName;
-		$this->_entity = $entity;
+		$this->_entityId = $entityId;
 	}
 
 	/**
@@ -71,13 +71,10 @@ class UniqueEntityProperty extends \Zend_Validate_Abstract
 	{
 		$this->_setValue($value);
 
-		if($this->_entity !== null) {
-			$getMethod = 'get' . ucfirst($this->_propertyName);
-			if($this->_entity->$getMethod() == $value) return true;
-		}
-
 		$existing = $this->_repository->findOneBy(array($this->_propertyName => $value));
+
 		if($existing != null) {
+			if($existing->getId() == $this->_entityId) return true;
 			$this->_error(self::MSG_UNIQUE);
 			return false;
 		}

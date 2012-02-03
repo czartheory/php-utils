@@ -25,7 +25,7 @@ class ExsistingEntityProperty extends \Zend_Validate_Abstract
 	protected $_propertyName;
 
 	/** @var string */
-	protected $_entity;
+	protected $_entityId;
 
 	const MSG_MATCH = 'msgExists';
 
@@ -39,13 +39,13 @@ class ExsistingEntityProperty extends \Zend_Validate_Abstract
 	 * @param EntityManager $em the doctrine EntityManager to connect with
 	 * @param string $entityName the fully qualified class name of the entity
 	 * @param string $propertyName the property name in question
-	 * @param string $entity (optional) the existing entity in question.
+	 * @param string $entityId (optional) the existing entity in question.
 	 */
-	public function __construct(EntityManager $em, $entityName, $propertyName, $entity = null)
+	public function __construct(EntityManager $em, $entityName, $propertyName, $entityId = null)
 	{
 		$this->_repository = $em->getRepository($entityName);
 		$this->_propertyName = $propertyName;
-		$this->_entity = $entity;
+		$this->_entityId = $entityId;
 	}
 
 	/**
@@ -71,9 +71,10 @@ class ExsistingEntityProperty extends \Zend_Validate_Abstract
 	{
 		$this->_setValue($value);
 
-		if($this->_entity !== null) {
+		if($this->_entityId !== null) {
+			$entity = $this->_repository->find($this->_entityId);
 			$getMethod = 'get' . ucfirst($this->_propertyName);
-			if($this->_entity->$getMethod() == $value) return true;
+			if($entity->$getMethod() == $value) return true;
 		}
 
 		$existing = $this->_repository->findOneBy(array($this->_propertyName => $value));
