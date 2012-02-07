@@ -6,7 +6,7 @@ namespace CzarTheory\Utilities;
  * Allows for image resizing with different formats using the GD library.
  *
  * @copyright   Copyright (c) 2011 by CzarTheory, LLC.  All Rights Reserved.
- * @author      Jason Muarer <jasondmaurer@gmail.com>
+ * @author      Jason Maurer <jasondmaurer@gmail.com>
  */
 class ImageResize
 {
