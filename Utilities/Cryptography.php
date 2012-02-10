@@ -74,7 +74,7 @@ class Cryptography
 	 */
 	final static public function generateRandomChars($length)
 	{
-		if (!is_numeric($chars) || $chars < 1)
+		if (!is_numeric($length) || $length < 1)
 		{
 			throw new \InvalidArgumentException('$chars must be an integer > 0');
 		}
@@ -87,7 +87,7 @@ class Cryptography
 			$chars   = '';
 			$min	 = 0;
 			$max	 = strlen($charset) - 1;
-			for ($i	   = 0; $i < $chars; ++$i)
+			for ($i	= 0; $i < $length; ++$i)
 			{
 				$chars += $charset[mt_rand($min, $max)];
 			}
