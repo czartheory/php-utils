@@ -53,7 +53,7 @@ class CsvParser
 	 */
 	public function __construct($input)
 	{
-		if(is_readable($input)) $this->_loadFile($input);
+		if (is_readable($input)) $this->_loadFile($input);
 		else $this->rawData = $input;
 	}
 
@@ -65,10 +65,21 @@ class CsvParser
 	{
 		$this->fileName = $fileName;
 		$data = file_get_contents($fileName);
-		if($data === false) throw new \InvalidArgumentException("File $fileName was unable to be read");
+		if ($data === false)
+		{
+			throw new \InvalidArgumentException("File $fileName was unable to be read");
+		}
 
-		if($this->convertEncoding) $data = iconv($this->inputEncoding, $this->outputEncoding, $data);
-		if(substr($data, -1) != "\n") $data .= "\n";
+		if ($this->convertEncoding)
+		{
+			$data = iconv($this->inputEncoding, $this->outputEncoding, $data);
+		}
+
+		if (substr($data, -1) != "\n") 
+		{
+			$data .= "\n";
+		}
+		
 		$this->rawData = $data;
 	}
 
@@ -80,16 +91,29 @@ class CsvParser
 	 */
 	public function getHeaderRow()
 	{
-		if($this->schema === null) {
-			if($this->rowsLoaded > 0) throw new \InvalidArgumentException("Cannot get header row after data has been parsed");
+		if ($this->schema === null)
+		{
+			if ($this->rowsLoaded > 0)
+			{
+				throw new \InvalidArgumentException("Cannot get header row after data has been parsed");
+			}
+			
 			$row = null;
-			do {
+			do
+			{
 				$row = $this->_getRawRow();
-				if($row === null) throw new \InvalidArgumentException("No data found in parse");
+				if ($row === null)
+				{
+					throw new \InvalidArgumentException("No data found in parse");
+				}
+				
 				$row = $this->_parseRawRow($row, false);
-			} while(!empty($row));
+			}
+			while (empty($row));
+
 			$this->schema = $row;
 		}
+
 		return $this->schema;
 	}
 
@@ -104,21 +128,27 @@ class CsvParser
 	public function getNextRow()
 	{
 		$row = null;
-		do {
+		do
+		{
 			$raw = $this->_getRawRow();
-			if($raw === null) return null;
-			$row = $this->_parseRawRow($raw);
-		} while(!empty($row));
+			if ($raw === null) return null;
 
-		if($this->schema !== null) {
-			$rawRow = $row;
+			$raw = $this->_parseRawRow($raw);
+		}
+		while (empty($raw));
+
+		if ($this->schema !== null)
+		{
+			$rawRow = $raw;
 			$row = array();
 			$size = count($this->schema);
-			for($i = 0; $i < $size; $i++) {
-				$key = $this->schema[i];
-				$row[$key] = $rawRow[i];
+			for ($i = 0; $i < $size; ++$i)
+			{
+				$key = $this->schema[$i];
+				$row[$key] = $rawRow[$i];
 			}
 		}
+
 		$this->parsedData[] = $row;
 		return $row;
 	}
@@ -129,8 +159,9 @@ class CsvParser
 	 */
 	private function _getRawRow()
 	{
-		$lineEnd = function($char, $previousChar, $nextChar = null) {
-				return ($char == "\r" || ($char == "\n" && $prevChar != "\r"));
+		$lineEnd = function($char, $previousChar, $nextChar = null)
+			{
+				return (($char == "\r" && $nextChar != "\n" /* not windows */) || $char == "\n");
 			};
 
 		$result = $this->_getRawUntil($lineEnd, $this->rawData, $this->cursor);
@@ -149,38 +180,43 @@ class CsvParser
 	private function _getRawUntil($checkFunction, $input, $startCursor)
 	{
 		$cursor = $startCursor;
-		$length = $strlen($input);
+		$length = strlen($input);
 		$data = $input;
 
 		$enclosure = $this->enclosure;
-		if($cursor >= $length) return null;
+		if ($cursor >= $length) return null;
 
 		$terminationFound = false;
 		$enclosed = false;
 		$wasEnclosed = false;
 
 		$char = false;
-		$nextChar = $data{$cursor};
-		$prevChar = false;
+		$charNext = $data{$cursor};
+		$charPrev = false;
 		$result = "";
 
-		while(!$terminationFound && $cursor < $length) {
-			$prevChar = $char;
-			$char = $nextChar;
-			$cursor++;
-			$nextChar = ($cursor < $length) ? $data{$cursor} : false;
-			$result.= $char;
+		while (!$terminationFound && $cursor < $length)
+		{
+			$charPrev = $char;
+			$char = $charNext;
+			++$cursor;
+			$charNext = ($cursor < $length) ? $data{$cursor} : false;
+			$result .= $char;
 
 			// open and closing quotes
-			if($char == $enclosure && ($nextChar != $enclosure || !$enclosed)) {
+			if ($char == $enclosure && ($charNext != $enclosure || !$enclosed))
+			{
 				$enclosed = !$enclosed;
-				if($enclosed) $wasEnclosed = true;
+				if ($enclosed) $wasEnclosed = true;
 
 				// check for end of row
-			} elseif(!$enclosed && $checkFunction($char, $prevChar, $nextChar)) {
+			}
+			elseif (!$enclosed && $checkFunction($char, $charPrev, $charNext))
+			{
 				$terminationFound = true;
 			}
 		}
+
 		return array(trim($result), $cursor, $wasEnclosed);
 	}
 
@@ -194,24 +230,28 @@ class CsvParser
 		$row = array();
 		$cursor = 0;
 		$length = strlen($raw);
-		$enclosure = $this->enclosure;
-		if($cursor == $length) return null;
+		if ($cursor == $length) return null;
 
 		$delimiter = $this->delimiter;
-		$checkFunction = function ($char, $prev = null, $next = null) use ($delimiter) {
+		$checkFunction = function ($char, $prev = null, $next = null) use ($delimiter)
+			{
 				return ($char == $delimiter);
 			};
 
-		while($cursor < $length) {
+		while ($cursor < $length)
+		{
 			$ret = $this->_getRawUntil($checkFunction, $raw, $cursor);
-			if($ret === null) break;
+			if ($ret === null) break;
+
 			$field = $ret[0];
 			$cursor = $ret[1];
 			$wasEnclosed = $ret[2];
-			if($wasEnclosed) $field = substr($field, 1, strlen($field) - 2);
+
+			if ($wasEnclosed) $field = substr($field, 1, strlen($field) - 2);
 
 			$row[] = $field;
 		}
+
 		return $row;
 	}
 }
