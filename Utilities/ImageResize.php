@@ -52,7 +52,7 @@ class ImageResize
 				$this->_sourceImage = imagecreatefromwbmp($sourceFile);
 				break;
 			default:
-				throw new exception('That filetype is not allowed!');
+				throw new \exception('That filetype is not allowed!');
 		}
 
 		$this->_sourceFile = $sourceFile;
@@ -83,11 +83,21 @@ class ImageResize
 		return $orient;
 	}
 
+	/**
+	 * Sets the background color of container images
+	 *
+	 * @param array $bgColor RGB color
+	 */
 	public function setBgColor(array $bgColor)
 	{
 		$this->_bgColor = $bgColor;
 	}
 
+	/**
+	 * Sets the output quality of the newly resized image
+	 *
+	 * @param int $quality Image output quality
+	 */
 	public function setQuality($quality)
 	{
 		if ($quality >= 0 && $quality <= 100) {
