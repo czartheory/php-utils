@@ -235,7 +235,7 @@ class CsvParser
 		$delimiter = $this->delimiter;
 		$checkFunction = function ($char, $prev = null, $next = null) use ($delimiter)
 			{
-				return ($char == $delimiter);
+				return ($next == $delimiter);
 			};
 
 		while ($cursor < $length)
@@ -244,7 +244,7 @@ class CsvParser
 			if ($ret === null) break;
 
 			$field = $ret[0];
-			$cursor = $ret[1];
+			$cursor = $ret[1] + 1; // skip delimiter
 			$wasEnclosed = $ret[2];
 
 			if ($wasEnclosed) $field = substr($field, 1, strlen($field) - 2);
