@@ -53,8 +53,12 @@ class CsvParser
 	 */
 	public function __construct($input)
 	{
-		if (is_readable($input)) $this->_loadFile($input);
-		else $this->rawData = $input;
+		if (!is_readable($input))
+		{
+			throw new InvalidOperationException("File not found: $input");
+		}
+		
+		$this->_loadFile($input);
 	}
 
 	/**
@@ -150,6 +154,7 @@ class CsvParser
 		}
 
 		$this->parsedData[] = $row;
+		++$this->rowsLoaded;
 		return $row;
 	}
 
@@ -186,7 +191,6 @@ class CsvParser
 		$enclosure = $this->enclosure;
 		if ($cursor >= $length) return null;
 
-		$terminationFound = false;
 		$enclosed = false;
 		$wasEnclosed = false;
 
@@ -195,26 +199,32 @@ class CsvParser
 		$charPrev = false;
 		$result = "";
 
-		while (!$terminationFound && $cursor < $length)
+		while ($cursor < $length)
 		{
 			$charPrev = $char;
 			$char = $charNext;
 			++$cursor;
 			$charNext = ($cursor < $length) ? $data{$cursor} : false;
-			$result .= $char;
 
 			// open and closing quotes
 			if ($char == $enclosure && ($charNext != $enclosure || !$enclosed))
 			{
 				$enclosed = !$enclosed;
-				if ($enclosed) $wasEnclosed = true;
+				if ($enclosed) 
+				{
+					$wasEnclosed = true;
+				}
 
 				// check for end of row
 			}
-			elseif (!$enclosed && $checkFunction($char, $charPrev, $charNext))
+			elseif (!$enclosed)
 			{
-				$terminationFound = true;
+				$delimFound = $checkFunction($char, $charPrev, $charNext);
+				if ($delimFound)
+					break;
 			}
+			
+			$result .= $char;
 		}
 
 		return array(trim($result), $cursor, $wasEnclosed);
@@ -235,7 +245,7 @@ class CsvParser
 		$delimiter = $this->delimiter;
 		$checkFunction = function ($char, $prev = null, $next = null) use ($delimiter)
 			{
-				return ($next == $delimiter);
+				return ($char == $delimiter);
 			};
 
 		while ($cursor < $length)
@@ -244,7 +254,7 @@ class CsvParser
 			if ($ret === null) break;
 
 			$field = $ret[0];
-			$cursor = $ret[1] + 1; // skip delimiter
+			$cursor = $ret[1]; // skip delimiter
 			$wasEnclosed = $ret[2];
 
 			if ($wasEnclosed) $field = substr($field, 1, strlen($field) - 2);
