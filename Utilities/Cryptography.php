@@ -10,6 +10,7 @@ namespace CzarTheory\Utilities;
  */
 class Cryptography
 {
+
 	/**
 	 * Encrypts the password using the algorithm specified by the salt string.
 	 *
@@ -30,22 +31,18 @@ class Cryptography
 	final static public function generateSalt()
 	{
 		$cryptographySettings = \Zend_Registry::get('cryptography');
-		$randomSalt		   = substr(bin2hex(openssl_random_pseudo_bytes(22, $strong)), 0,
-															   22);
+		$randomSalt = substr(bin2hex(openssl_random_pseudo_bytes(22, $strong)), 0, 22);
 		if (!($randomSalt && $strong))
 		{
-			$min		= 0;
-			$max		= 2147483647;
-			$randomSalt = substr(str_replace('+', '.',base64_encode(pack(
-					'N4', 
-					mt_rand($min, $max), 
-					mt_rand($min, $max), 
-					mt_rand($min, $max),
-					mt_rand($min, $max)))), 0, 22);
+			$min = 0;
+			$max = 2147483647;
+			$randomSalt = substr(str_replace('+', '.',
+									base64_encode(pack(
+							'N4', mt_rand($min, $max), mt_rand($min, $max), mt_rand($min, $max), mt_rand($min, $max)))), 0, 22);
 		}
 
-		return '$' . $cryptographySettings['hash'] . '$rounds=' . 
-				$cryptographySettings['rounds'] . '$' . $randomSalt . '$';
+		return '$' . $cryptographySettings['hash'] . '$rounds=' .
+			$cryptographySettings['rounds'] . '$' . $randomSalt . '$';
 	}
 
 	/**
@@ -58,7 +55,7 @@ class Cryptography
 	final static public function generateHash($value, $salt)
 	{
 		$hash = $value . $salt;
-		for ($i	= 0; $i < 20; ++$i)
+		for ($i = 0; $i < 20; ++$i)
 		{
 			$hash = md5($hash);
 		}
@@ -79,15 +76,14 @@ class Cryptography
 			throw new \InvalidArgumentException('$chars must be an integer > 0');
 		}
 
-		$chars = substr(bin2hex(openssl_random_pseudo_bytes($length, $strong)), 0,
-													  $length);
+		$chars = substr(bin2hex(openssl_random_pseudo_bytes($length, $strong)), 0, $length);
 		if (!($chars && $strong))
 		{
 			$charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-			$chars   = '';
-			$min	 = 0;
-			$max	 = strlen($charset) - 1;
-			for ($i	= 0; $i < $length; ++$i)
+			$chars = '';
+			$min = 0;
+			$max = strlen($charset) - 1;
+			for ($i = 0; $i < $length; ++$i)
 			{
 				$chars += $charset[mt_rand($min, $max)];
 			}
@@ -95,7 +91,7 @@ class Cryptography
 
 		return $chars;
 	}
-		
+
 	/**
 	 * Generates a 55 character unique identifier
 	 * 
@@ -116,11 +112,14 @@ class Cryptography
 	{
 		if (!is_numeric($digits) || $digits < 1)
 		{
-			throw new \InvalidArgumentException('$digits must be an integer > 0');
+			throw new \InvalidArgumentException('$digits must be an integer greater than 0');
+		}
+		
+		for ($code = ''; 0 < $digits; --$digits)
+		{
+			$code .= (int)mt_rand(0, 9);
 		}
 
-		$code = str_pad((int) mt_rand(0, pow(10, $digits) - 1), $digits, '0',
-									   STR_PAD_LEFT);
 		return $code;
 	}
 }
