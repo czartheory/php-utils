@@ -15,7 +15,7 @@ use Doctrine\ORM\EntityRepository;
  * This validator checks to see if a given property of a given Entity-type is exists
  * Validates if a desired property exists in the database
  */
-class ExsistingEntityProperty extends \Zend_Validate_Abstract
+class ExistingEntityProperty extends \Zend_Validate_Abstract
 {
 
 	/** @var EntityRepository */
