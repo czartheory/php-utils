@@ -36,9 +36,13 @@ class Cryptography
 		{
 			$min = 0;
 			$max = 2147483647;
-			$randomSalt = substr(str_replace('+', '.',
-									base64_encode(pack(
-							'N4', mt_rand($min, $max), mt_rand($min, $max), mt_rand($min, $max), mt_rand($min, $max)))), 0, 22);
+			$randomSalt = substr(str_replace('+', '.', base64_encode(pack(
+				'N4', 
+				mt_rand($min, $max), 
+				mt_rand($min, $max), 
+				mt_rand($min, $max), 
+				mt_rand($min, $max)
+			))), 0, 22);
 		}
 
 		return '$' . $cryptographySettings['hash'] . '$rounds=' .
@@ -76,14 +80,14 @@ class Cryptography
 			throw new \InvalidArgumentException('$chars must be an integer > 0');
 		}
 
-		$chars = substr(bin2hex(openssl_random_pseudo_bytes($length, $strong)), 0, $length);
+		$chars = substr(bin2hex(openssl_random_pseudo_bytes($length, $strong)), 0, (int)ceil($length/2));
 		if (!($chars && $strong))
 		{
 			$charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
 			$chars = '';
 			$min = 0;
 			$max = strlen($charset) - 1;
-			for ($i = 0; $i < $length; ++$i)
+			for (; $length > 0; --$length)
 			{
 				$chars += $charset[mt_rand($min, $max)];
 			}
