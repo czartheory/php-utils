@@ -11,32 +11,27 @@ namespace CzarTheory\Utilities;
 class ImageResize
 {
 
-	/** @var string */
-	protected $_sourceFile;
+	/** @var resource */
+	protected $_sourceImage;
 
-	/** @var int */
-	protected $_newWidth;
-
-	/** @var int */
-	protected $_newHeight;
+	/** @var array */
+	protected $_originalSize;
 
 	/** @var array */
 	protected $_bgColor = null;
 
-	/** @var string */
-	protected $_writeType;
-
 	/** @var int */
 	protected $_quality = 95;
 
-	/** @var resource */
-	protected $_sourceImage;
-
-	public function __construct($sourceFile, $writeType = 'jpg')
+	public function __construct($sourceFile)
 	{
+		if(!is_readable($sourceFile)){
+			throw new \InvalidArgumentException('This file is unreadable: ' . $sourceFile);
+		}
+
 		/* Determine image type from the extension */
-		$ext = explode(".",$sourceFile);
-		$imageType = $ext[count($ext)-1];
+		$ext = explode(".", $sourceFile);
+		$imageType = $ext[count($ext) - 1];
 
 		switch ($imageType) {
 			case 'jpg':
@@ -55,40 +50,86 @@ class ImageResize
 				throw new \exception('That filetype is not allowed!');
 		}
 
-		$this->_sourceFile = $sourceFile;
-		$this->_writeType = $writeType;
+		$this->_originalSize = getimagesize($sourceFile);
+		$this->_findAppropriateBgColor();
 	}
 
 	/**
-     * Determines the orientation of a given size
-	 *
-     * @param array $size The width and height
-     * @return array X/Y and Width/Height for a resized image
-     */
-	protected function _checkOrientation($size)
+	 * Finds an appropriate color to use for the background
+	 * Based upon the average of a sampling of pixels from the original image
+	 */
+	protected function _findAppropriateBgColor()
 	{
-		if ($size[0] >= $size[1]) { /* Landscape */
-			$width = $this->_newWidth;
-			$height = round(($size[1]/$size[0])*$width);
-			$y = ($this->_newWidth - $height) / 2;
+		$img = $this->_sourceImage;
+		$size = $this->_originalSize;
+		$right = $size[0] - 1;
+		$botm = $size[1] - 1;
+
+		$raw = imagecolorat($img, 0, 0);
+		$ul = array(
+			($raw >> 16) & 0xFF,
+			($raw >> 8) & 0xFF,
+			$raw & 0xFF,
+		);
+
+		$raw = imagecolorat($img, $right, 0);
+		$ur = array(
+			($raw >> 16) & 0xFF,
+			($raw >> 8) & 0xFF,
+			$raw & 0xFF,
+		);
+
+		$raw = imagecolorat($img, 0, $botm);
+		$ll = array(
+			($raw >> 16) & 0xFF,
+			($raw >> 8) & 0xFF,
+			$raw & 0xFF,
+		);
+
+		$raw = imagecolorat($img, $right, $botm);
+		$lr = array(
+			($raw >> 16) & 0xFF,
+			($raw >> 8) & 0xFF,
+			$raw & 0xFF,
+		);
+
+
+		$color = array(
+			($ul[0] + $ur[0] + $ll[0] + $lr[0]) / 4,
+			($ul[1] + $ur[1] + $ll[1] + $lr[1]) / 4,
+			($ul[2] + $ur[2] + $ll[2] + $lr[2]) / 4,
+		);
+
+		$this->_bgColor = $color;
+	}
+
+
+	/**
+	 * Determines the orientation of a given size
+	 */
+	protected function _checkOrientation($newWidth, $newHeight)
+	{
+		$size = $this->_originalSize;
+		if ($size[0] >= $size[1]) { // Landscape
+			$width = $newWidth;
+			$height = round(($size[1] / $size[0]) * $width);
+			$y = ($newWidth - $height) / 2;
 			$x = 0;
-		} else { /* Portrait */
-			$height = $this->_newHeight;
-			$width = round(($size[0]/$size[1])*$height);
-			$x = ($this->_newHeight - $width) / 2;
+		} else { // Portrait
+			$height = $newHeight;
+			$width = round(($size[0] / $size[1]) * $height);
+			$x = ($newHeight - $width) / 2;
 			$y = 0;
 		}
 
-		$orient = array($x,$y,$width,$height);
-		return $orient;
+		return array($x, $y, $width, $height);
 	}
 
 	/**
-	 * Sets the background color of container images
-	 *
+	 * Sets the background color of exported images
 	 * @param array $bgColor RGB color
 	 */
-	public function setBgColor(array $bgColor)
+	public function setOutputFillColor(array $bgColor)
 	{
 		$this->_bgColor = $bgColor;
 	}
@@ -100,10 +141,12 @@ class ImageResize
 	 */
 	public function setQuality($quality)
 	{
-		if ($quality >= 0 && $quality <= 100) {
-			$this->_quality = $quality;
-		} else {
+		if ($quality <= 0) {
+			$this->_quality = 0;
+		} elseif ($quality >= 100) {
 			$this->_quality = 100;
+		} else {
+			$this->_quality = $quality;
 		}
 	}
 
@@ -112,62 +155,58 @@ class ImageResize
 	 * newly given width/height, it keeps its aspect ratio and is put inside an
 	 * image container with the given background color.
 	 *
-	 * @param string $sourceFile Location of the original image being used
-	 * @param string $newFile Location of the new image
-	 * @param int $newWidth Width of the new image container
-	 * @param int $newHeight Height of the new image container
-	 * @param array $bgColor Background color of new image container
-	 * @param string $writeType Type of file to write generated image as
+	 * @param int $outWidth Width of the new image container
+	 * @param int $outHeight Height of the new image container
+	 * @param string $outFile the filename to output (without the extension);
+	 * @param string $extension the file extension required
 	 */
-	public function resize($newWidth, $newHeight)
+	public function resizeToBox($outWidth, $outHeight, $outFile, $extension)
 	{
-		$this->_newWidth = $newWidth;
-		$this->_newHeight = $newHeight;
-
 		/* Create a blank image */
-		$img = imagecreatetruecolor($newWidth, $newHeight);
+		$outImage = imagecreatetruecolor($outWidth, $outHeight);
 		if ($this->_bgColor !== null) {
-			$color = imagecolorallocate($img, $this->_bgColor[0], $this->_bgColor[1], $this->_bgColor[2]);
-			imagefill($img, 0, 0, $color);
+			$color = imagecolorallocate($outImage, $this->_bgColor[0], $this->_bgColor[1], $this->_bgColor[2]);
+			imagefill($outImage, 0, 0, $color);
 		}
 
 		/* Get size of submitted image and check its orientation */
-		$size = getimagesize($this->_sourceFile);
-		$orient = $this->_checkOrientation($size);
+		$orient = $this->_checkOrientation($outWidth,$outHeight);
+		$size = $this->_originalSize;
 
 		/* Merge blank image created and submitted image */
 		imagecopyresampled(
-				$img,$this->_sourceImage, /* dst_image, src_image */
-				$orient[0],$orient[1], /* dst_x, dst_y */
-				0,0, /* src_x, src_y */
-				$orient[2],$orient[3], /* dst_w, dst_h */
-				$size[0],$size[1] /* src_w, src_h */
+			$outImage, //Destination
+			$this->_sourceImage, //Source
+			$orient[0], //Dest-X
+			$orient[1], //Dext-Y
+			0, //Source-x
+			0, //Source-y
+			$orient[2], //Dest Width
+			$orient[3], //Dest Height
+			$size[0], //Source Width
+			$size[1] //Source Height
 		);
 
-		$newFile = explode(".",$this->_sourceFile);
-		array_pop($newFile);
-		$newFile = implode(".",$newFile);
-
 		/* Write final image and destroy images from memory */
-		switch ($this->_writeType) {
+		switch ($extension) {
+			case 'jpeg':
 			case 'jpg':
-				imagejpeg($img,$newFile."_".$this->_newWidth.".jpg",$this->_quality);
+				imagejpeg($outImage, $outFile . ".jpg", $this->_quality);
 				break;
 			case 'png':
-				imagepng($img,$newFile."_".$this->_newWidth.".png",$this->_quality);
+				imagepng($outImage, $outFile . ".png", $this->_quality);
 				break;
 			case 'gif':
-				imagegif($img,$newFile."_".$this->_newWidth.".gif",$this->_quality);
+				imagegif($outImage, $outFile . ".gif", $this->_quality);
 				break;
 			case 'wbmp':
-				imagewbmp($img,$newFile."_".$this->_newWidth.".wbmp",$this->_quality);
+				imagewbmp($outImage, $outFile . ".wbmp", $this->_quality);
 				break;
+			default:
+				throw new \InvalidArgumentException("Unrecognized Output Extension: $extension");
 		}
-
-		imagedestroy($img);
-		imagedestroy($this->_sourceImage);
+		imagedestroy($outImage);
 	}
 
 }
-
 ?>
