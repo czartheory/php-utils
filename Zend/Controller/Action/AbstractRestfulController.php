@@ -6,7 +6,7 @@ use CzarTheory\Services\RestfulService;
 
 abstract class AbstractRestfulController extends \Zend_Controller_Action
 {
-	/** 
+	/**
 	 * Info for child class to be aware of http method being used.
 	 * @var string
 	 */
@@ -23,7 +23,7 @@ abstract class AbstractRestfulController extends \Zend_Controller_Action
 	 *
 	 * @param RestfulService $service
 	 * @param \Zend_form $form
-	 * @param string $id the Id of the item being requested/modified 
+	 * @param string $id the Id of the item being requested/modified
 	 */
 	protected function _dispatchRest(RestfulService $service, \Zend_form $form, $id = null)
 	{
@@ -32,7 +32,7 @@ abstract class AbstractRestfulController extends \Zend_Controller_Action
 		$view = $this->view;
 		$this->_httpMethod = $method;
 		$view->restfulService = $service;
-		
+
 		switch($method) {
 			case 'get':
 				if(null !== $id) $view->entityService = $service->get($id);
@@ -58,7 +58,6 @@ abstract class AbstractRestfulController extends \Zend_Controller_Action
 				} else {
 					$view->entityService = $service->create($form->getValidValues($post));
 					$this->_postHappened = true;
-
 				}
 				break;
 
