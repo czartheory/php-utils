@@ -67,7 +67,7 @@ abstract class AbstractRestfulController extends \Zend_Controller_Action
 				parse_str($request->getRawBody(), $put);
 				if(null === $id) {
 					$view->error = "No Id Provided";
-					$this->_response->setHttpResponceCode(400);
+					$this->_response->setHttpResponseCode(400);
 
 				} elseif(!$form->isValid($put)){
 					$view->error = array('invalid' => $form->getMessages());
