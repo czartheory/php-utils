@@ -40,7 +40,6 @@ abstract class AbstractRestfulController extends \Zend_Controller_Action
 
 			case 'post':
 				$form->setMethod(\Zend_Form::METHOD_POST);
-				$form->setMethod('post');
 				$post = $request->getPost();
 
 				if(!$form->isValid($post)){
