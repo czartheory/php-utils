@@ -20,6 +20,28 @@ use CzarTheory\Utilities\AccessViolationException;
 interface RestfulService
 {
 	/**
+	 * Configures the criteria for subsequent getAll calls.
+	 * 
+	 * @param array $criteria The filtering criteria used in the where clause.
+	 */
+	public function setCriteria(array $criteria);
+
+	/**
+	 * Configures the ordering of subsequent getAll calls.
+	 * 
+	 * @param array $orderBy The associative array of columns mapped to 'ASC' or 'DESC' values. 
+	 */
+	public function setOrderBy(array $orderBy);
+	
+	/**
+	 * Configures the limit and offset (pagination) of the getAll request.
+	 * 
+	 * @param integer $limit The number of records to return.
+	 * @param integer $offset The starting result of the records to return.
+	 */
+	public function setPagination($limit, $offset = 0);
+		
+	/**
 	 * Retrieves an object from the collection, wrapped as a ProtectedObject
 	 *
 	 * @param string|int $identifier the unique identifier to get the entity
@@ -31,18 +53,16 @@ interface RestfulService
 	/**
 	 * Retrieves all available objects, wrapped as ProtectedObject instances
 	 *
-	 * @param array $criteria (optional) a filter to give limited results
 	 * @return ArrayAccess Collection of ProtectedObject which the user is allowed to read (may be empty)
 	 */
-	public function getAll(array $criteria = array());
+	public function getAll();
 
 	/**
 	 * Gets the count of Items available with a similar getAll() method
 	 *
-	 * @param array $criteria (optional) a filter to count on limited results
 	 * @return int the number of items counted
 	 */
-	public function count(array $criteria = array());
+	public function count();
 
 	/**
 	 * Gets a value indicating whether the actor is allowed to add an object to the collection
