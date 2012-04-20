@@ -25,7 +25,7 @@ abstract class AbstractRestfulController extends \Zend_Controller_Action
 	 * @param \Zend_form $form
 	 * @param string $id the Id of the item being requested/modified
 	 */
-	protected function _dispatchRest(RestfulService $service, \Zend_form $form, $id = null)
+	protected function _dispatchRest(RestfulService $service, \Zend_form $form = null, $id = null)
 	{
 		$request = $this->getRequest();
 		$method = strtolower($request->getMethod());
