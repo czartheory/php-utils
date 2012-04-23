@@ -40,6 +40,12 @@ interface RestfulService
 	 * @param integer $offset The starting result of the records to return.
 	 */
 	public function setPagination($limit, $offset = 0);
+	
+	/**
+	 * Gets a value indicating whether the criteria has been set (i.e. not null or an empty array()).
+	 * @return boolean true if criteria was previously set, otherwise false. 
+	 */
+	public function hasCriteria();
 		
 	/**
 	 * Retrieves an object from the collection, wrapped as a ProtectedObject
