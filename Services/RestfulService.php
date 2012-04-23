@@ -46,6 +46,11 @@ interface RestfulService
 	 * @return boolean true if criteria was previously set, otherwise false. 
 	 */
 	public function hasCriteria();
+	
+	/**
+	 * Erases previously set criteria.
+	 */
+	public function resetCriteria();
 		
 	/**
 	 * Retrieves an object from the collection, wrapped as a ProtectedObject
@@ -55,7 +60,14 @@ interface RestfulService
 	 * @return ProtectedObject|null The wrapped entity or null if not found
 	 */
 	public function get($identifier, array $criteria = array());
-
+//
+//	/**
+//	 * Retrieves a single object from the collection matching the given 
+//	 * criteria, wrapped as a ProtectedObject  
+//	 * @param array $criteria The collection of enhanced simple doctrine criteria tuples to apply to the query.
+//	 */
+//	public function getOne(array $criteria);
+	
 	/**
 	 * Retrieves all available objects, wrapped as ProtectedObject instances
 	 *
