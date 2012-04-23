@@ -26,7 +26,7 @@ abstract class AbstractRestfulController extends \Zend_Controller_Action
 	 * @param string $id the Id of the item being requested/modified
 	 */
 	protected function _dispatchRest(RestfulService $service, \Zend_form $form, $id = null)
-	{
+	{		
 		$request = $this->getRequest();
 		$method = strtolower($request->getMethod());
 		$view = $this->view;
@@ -40,7 +40,6 @@ abstract class AbstractRestfulController extends \Zend_Controller_Action
 
 			case 'post':
 				$form->setMethod(\Zend_Form::METHOD_POST);
-				$form->setMethod('post');
 				$post = $request->getPost();
 
 				if(!$form->isValid($post)){
