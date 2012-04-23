@@ -35,39 +35,33 @@ abstract class AbstractRestfulController extends \Zend_Controller_Action
 
 		switch($method) {
 			case 'get':
-				if(null !== $id)
+				$query = $request->getQuery();
+				// Convert values from their string representations
+				foreach ($query as $key => $value)
 				{
-					$view->entityService = $service->get($id);
-				}
-				else
-				{
-					$query = $request->getQuery();
-					// Convert values from their string representations
-					foreach ($query as $key => $value)
+					// pull out sort if it's defined
+					if (preg_match('/sort\((.*)\)/', $key, $matches))
 					{
-						// pull out sort if it's defined
-						if (preg_match('/sort\((.*)\)/', $key, $matches))
+						$orderBy = array();
+						foreach (explode(',', $matches[1]) as $ordering)
 						{
-							$orderBy = array();
-							foreach (explode(',', $matches[1]) as $ordering)
-							{
-								$orderBy[substr($ordering, 1)] = (substr($ordering, 0, 1) == '-' ? 'DESC' : 'ASC');
-							}
-							
-							$service->setOrderBy($orderBy);
-							unset($query[$key]);
+							$orderBy[substr($ordering, 1)] = (substr($ordering, 0, 1) == '-' ? 'DESC' : 'ASC');
 						}
-						elseif (is_numeric($value))
+
+						$service->setOrderBy($orderBy);
+						unset($query[$key]);
+					}
+					elseif (is_numeric($value))
+					{
+						if (strpos($value, '.'))
 						{
-							if (strpos($value, '.'))
-							{
-								$query[$key] = doubleval($value);
-							}
-							else
-							{
-								$query[$key] = intval($value);
-							}
+							$query[$key] = doubleval($value);
 						}
+						else
+						{
+							$query[$key] = intval($value);
+						}
+					}
 //						elseif ($value === "true")
 //						{
 //							$query[$key] = true;
@@ -76,22 +70,27 @@ abstract class AbstractRestfulController extends \Zend_Controller_Action
 //						{
 //							$query[$key] = false;
 //						}
-					}
-					
-					$service->setCriteria($query);
-					$range = $request->getHeader('Range');
-					if (!empty($range))
-					{
-						preg_match('/=(\d+)-(\d+)/', $range, $matches);
-						$offset = intval($matches[1]);
-						$limit = intval($matches[2]) - $offset + 1;
-						$service->setPagination($limit, $offset);
-						
-						$this->_response->setHeader('Content-Range', sprintf('items %d-%d/%d', $offset, $offset + $limit - 1, $service->count()));
-					}
 				}
-				break;
 
+				$service->setCriteria($query);
+				$range = $request->getHeader('Range');
+				$matches = null;
+				if (!empty($range))
+				{
+					preg_match('/=(\d+)-(\d+)/', $range, $matches);
+					$offset = intval($matches[1]);
+					$limit = intval($matches[2]) - $offset + 1;
+					$service->setPagination($limit, $offset);
+
+					$this->_response->setHeader('Content-Range', sprintf('items %d-%d/%d', $offset, $offset + $limit - 1, $service->count()));
+				}
+
+				if(null !== $id)
+				{
+					$view->entityService = $service->get($id);
+				}
+				
+				break;
 			case 'post':
 				$form->setMethod(\Zend_Form::METHOD_POST);
 				$post = $request->getPost();
