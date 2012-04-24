@@ -40,7 +40,7 @@ abstract class AbstractRestfulController extends \Zend_Controller_Action
 				foreach ($query as $key => $value)
 				{
 					// pull out sort if it's defined
-					if (preg_match('/sort\((.*)\)/', $key, $matches))
+					if (preg_match('/^sort\((.*)\)$/', $key, $matches))
 					{
 						$orderBy = array();
 						foreach (explode(',', $matches[1]) as $ordering)
@@ -62,26 +62,13 @@ abstract class AbstractRestfulController extends \Zend_Controller_Action
 							$query[$key] = intval($value);
 						}
 					}
-//						elseif ($value === "true")
-//						{
-//							$query[$key] = true;
-//						}
-//						elseif ($value === "false")
-//						{
-//							$query[$key] = false;
-//						}
 				}
 
 				$service->setCriteria($query);
-				$range = $request->getHeader('Range');
-				$matches = null;
-				if (!empty($range))
-				{
-					preg_match('/=(\d+)-(\d+)/', $range, $matches);
-					$offset = intval($matches[1]);
-					$limit = intval($matches[2]) - $offset + 1;
+				$limit = $request->getParam('rangeLimit');
+				if(isset($limit)){
+					$offset = $request->getParam('rangeOffset');
 					$service->setPagination($limit, $offset);
-
 					$this->_response->setHeader('Content-Range', sprintf('items %d-%d/%d', $offset, $offset + $limit - 1, $service->count()));
 				}
 
@@ -89,8 +76,8 @@ abstract class AbstractRestfulController extends \Zend_Controller_Action
 				{
 					$view->entityService = $service->get($id);
 				}
-				
 				break;
+
 			case 'post':
 				$form->setMethod(\Zend_Form::METHOD_POST);
 				$post = $request->getPost();
