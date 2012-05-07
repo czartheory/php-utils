@@ -40,7 +40,7 @@ abstract class AbstractRestfulController extends \Zend_Controller_Action
 				foreach ($query as $key => $value)
 				{
 					// pull out sort if it's defined
-					if (preg_match('/sort\((.*)\)/', $key, $matches))
+					if (preg_match('/^sort\((.*)\)$/', $key, $matches))
 					{
 						$orderBy = array();
 						foreach (explode(',', $matches[1]) as $ordering)
@@ -71,6 +71,7 @@ abstract class AbstractRestfulController extends \Zend_Controller_Action
 					$service->setPagination($limit, $offset);
 					$this->_response->setHeader('Content-Range', sprintf('items %d-%d/%d', $offset, $offset + $limit - 1, $service->count()));
 				}
+
 				if(null !== $id)
 				{
 					$view->entityService = $service->get($id);
