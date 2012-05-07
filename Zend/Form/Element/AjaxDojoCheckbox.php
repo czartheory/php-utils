@@ -8,22 +8,23 @@ namespace CzarTheory\Zend\Form\Element;
 
 /**
  * Description of AjaxDojoCheckbox
- * 
+ *
  * This checkbox element mimics the Zend_Dojo Checkbox. However, it has one
- * keen difference: It allows for false values to be effectively sent from 
+ * keen difference: It allows for false values to be effectively sent from
  * the client side. When doing ajax-style requests (especially when populating
  * forms dynamically with javascript), setting a checkbox unchecked means that
  * the form will actually be sent without a value at all! Using this element
- * will prevent that. 
- * 
+ * will prevent that.
+ *
  * NOTE: To use this element, you must have the CzarTheory JS submodule configured
  * correctly. You also must have DOJO configured correctly to allow for 3rd-party
  * widgets and other dojo-classes.
- * 
+ *
  * @author Matthew Larson <matthew@czarTheory.com>
  */
 class AjaxDojoCheckbox extends \Zend_Form_Element
 {
+
 	/**
 	 * Is the checkbox checked?
 	 * @var bool
@@ -55,7 +56,7 @@ class AjaxDojoCheckbox extends \Zend_Form_Element
 		$filter->setType(\Zend_Filter_Boolean::ALL);
 		$this->addFilter($filter);
 	}
-	
+
 	/**
 	 * Set options
 	 *
@@ -67,11 +68,11 @@ class AjaxDojoCheckbox extends \Zend_Form_Element
 	 */
 	public function setOptions(array $options)
 	{
-		if(array_key_exists('checkedValue', $options)) {
+		if (array_key_exists('checkedValue', $options)) {
 			$this->setCheckedValue($options['checkedValue']);
 			unset($options['checkedValue']);
 		}
-		if(array_key_exists('uncheckedValue', $options)) {
+		if (array_key_exists('uncheckedValue', $options)) {
 			$this->setUncheckedValue($options['uncheckedValue']);
 			unset($options['uncheckedValue']);
 		}
@@ -79,7 +80,7 @@ class AjaxDojoCheckbox extends \Zend_Form_Element
 
 		$curValue = $this->getValue();
 		$test = array($this->getCheckedValue(), $this->getUncheckedValue());
-		if(!in_array($curValue, $test)) {
+		if (!in_array($curValue, $test)) {
 			$this->setValue($curValue);
 		}
 
@@ -101,7 +102,7 @@ class AjaxDojoCheckbox extends \Zend_Form_Element
 	 */
 	public function setValue($value)
 	{
-		if($value == $this->getCheckedValue()) {
+		if ($value == $this->getCheckedValue()) {
 			parent::setValue($value);
 			$this->checked = true;
 		} else {
@@ -162,7 +163,7 @@ class AjaxDojoCheckbox extends \Zend_Form_Element
 	public function setChecked($flag)
 	{
 		$this->checked = (bool) $flag;
-		if($this->checked) {
+		if ($this->checked) {
 			$this->setValue($this->getCheckedValue());
 		} else {
 			$this->setValue($this->getUncheckedValue());
@@ -186,16 +187,16 @@ class AjaxDojoCheckbox extends \Zend_Form_Element
 	 */
 	public function loadDefaultDecorators()
 	{
-		if($this->loadDefaultDecoratorsIsDisabled()) {
+		if ($this->loadDefaultDecoratorsIsDisabled()) {
 			return;
 		}
 
 		$decorators = $this->getDecorators();
-		if(empty($decorators)) {
+		if (empty($decorators)) {
 			$this->addDecorator(new DijitElement())
 				->addDecorator('Errors')
 				->addDecorator('Description', array('tag' => 'p', 'class' => 'description'))
-				->addDecorator('Label', array('tag' => 'span', 'placement'=>'APPEND'))
+				->addDecorator('Label', array('tag' => 'span', 'placement' => 'APPEND'))
 				->addDecorator('HtmlTag', array('tag' => 'dd'));
 		}
 	}
@@ -208,19 +209,21 @@ class AjaxDojoCheckbox extends \Zend_Form_Element
 	 * @param  Zend_View_Interface $view
 	 * @return Zend_Dojo_Form_Element_Dijit
 	 */
-	public function	setView(\Zend_View_Interface $view = null)
+	public function setView(\Zend_View_Interface $view = null)
 	{
-		if(null !== $view) {
-			if(false === $view->getPluginLoader('helper')->getPaths('Zend_Dojo_View_Helper')) {
+		if (null !== $view) {
+			if (false === $view->getPluginLoader('helper')->getPaths('Zend_Dojo_View_Helper')) {
 				$view->addHelperPath('Zend/Dojo/View/Helper', 'Zend_Dojo_View_Helper');
 			}
 		}
 		return parent::setView($view);
 	}
+
 }
 
 class DijitElement extends \Zend_Form_Decorator_ViewHelper
 {
+
 	/**
 	 * Element attributes
 	 * @var array
@@ -239,9 +242,9 @@ class DijitElement extends \Zend_Form_Decorator_ViewHelper
 	 */
 	public function getElementAttribs()
 	{
-		if(null === $this->_attribs) {
+		if (null === $this->_attribs) {
 			$this->_attribs = parent::getElementAttribs();
-			if(array_key_exists('dijitParams', $this->_attribs)) {
+			if (array_key_exists('dijitParams', $this->_attribs)) {
 				$this->setDijitParams($this->_attribs['dijitParams']);
 				unset($this->_attribs['dijitParams']);
 			}
@@ -271,7 +274,7 @@ class DijitElement extends \Zend_Form_Decorator_ViewHelper
 	{
 		$this->getElementAttribs();
 		$key = (string) $key;
-		if(array_key_exists($key, $this->_dijitParams)) {
+		if (array_key_exists($key, $this->_dijitParams)) {
 			return $this->_dijitParams[$key];
 		}
 
@@ -282,7 +285,7 @@ class DijitElement extends \Zend_Form_Decorator_ViewHelper
 	{
 		$element = $this->getElement();
 		$view = $element->getView();
-		if(null === $view) {
+		if (null === $view) {
 			throw new \Zend_Form_Decorator_Exception('DijitElement decorator cannot render without a registered view object');
 		}
 
@@ -297,26 +300,26 @@ class DijitElement extends \Zend_Form_Decorator_ViewHelper
 		$dijitParams['rootNode'] = 'input';
 
 		$id = $element->getId();
-		if($view->dojo()->hasDijit($id)) {
+		if ($view->dojo()->hasDijit($id)) {
 			trigger_error(sprintf('Duplicate dijit ID detected for id "%s; temporarily generating uniqid"', $id), E_USER_NOTICE);
 			$base = $id;
 			do {
 				$id = $base . '-' . uniqid();
-			} while($view->dojo()->hasDijit($id));
+			} while ($view->dojo()->hasDijit($id));
 		}
 		$attribs['id'] = $id;
 		$attribs['name'] = $id;
 		$attribs['type'] = 'checkbox';
 		$attribs['value'] = $element->getCheckedValue();
 		$attribs['uncheckedValue'] = $element->getUncheckedValue();
-		$attribs['checked'] = $element->isChecked()? 'true' : 'false';
+		$attribs['checked'] = $element->isChecked() ? 'true' : 'false';
 
-		if(array_key_exists('options', $attribs)) {
+		if (array_key_exists('options', $attribs)) {
 			$options = $attribs['options'];
 		}
 
 		$elementContent = $view->customDijit($name, null, $dijitParams, $attribs, $options);
-		switch($this->getPlacement()) {
+		switch ($this->getPlacement()) {
 			case self::APPEND:
 				return $content . $separator . $elementContent;
 			case self::PREPEND:
@@ -325,5 +328,5 @@ class DijitElement extends \Zend_Form_Decorator_ViewHelper
 				return $elementContent;
 		}
 	}
-}
 
+}
