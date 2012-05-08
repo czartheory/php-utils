@@ -1,6 +1,6 @@
 <?php
 
-namespace CpgLink\Repositories;
+namespace CzarTheory\Doctrine;
 
 use CzarTheory\Utilities\IllegalStateException;
 use CzarTheory\Utilities\InvalidOperationException;
