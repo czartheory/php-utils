@@ -14,9 +14,6 @@ use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\ORM\Mapping\ClassMetadataInfo;
 use Doctrine\ORM\Query;
 use Doctrine\ORM\QueryBuilder;
-//
-//use NetformApp\Entities\EntitySuperClass;
-//use NetformApp\Interfaces\Representable;
 
 /**
  * Manages entity repositories in an abstracted restful paradigm.
@@ -173,7 +170,23 @@ abstract class AbstractRestfulRepository extends EntityRepository
 		$result = $query->getOneOrNullResult();
 		return $result;
 	}
-	
+
+	/**
+	 * Gets the set of unique field entries in the repository.
+	 *
+	 * @param string $field The name of the field.
+	 * @param array $criteria The optional array of criteria for the query.
+	 * @return ???
+	 */
+	public function getDistinct($field, array $criteria = array())
+	{
+		$qb = $this->_getBaseDistinctQueryBuilder($field);
+		$this->_addCriteriaToBuilder($qb, 'e', $this->sanitizeQuery($criteria));
+		$query = $qb->getQuery();
+		$result = $query->getScalarResult();
+		return $result;
+	}
+
 	/**
 	 * Gets a collection of entities matching the specified enhanced simple doctrine criteria.
 	 *
@@ -186,7 +199,6 @@ abstract class AbstractRestfulRepository extends EntityRepository
 	public function getAll(array $criteria = array(), array $orderBy = array(), $limit = null, $offset = null)
 	{
 		$qb = $this->_getBaseAllQueryBuilder();
-
 		$this->_addCriteriaToBuilder($qb, 'e', $this->sanitizeQuery($criteria));
 
 		foreach ($orderBy as $sort => $order)
@@ -467,14 +479,14 @@ abstract class AbstractRestfulRepository extends EntityRepository
 	/**
 	 * Overridable method for getting an associative array of criteria keys
 	 * to foreign query expressions.
-	 * 
+	 *
 	 * @return array The array of foreign criteria.
 	 */
 	protected static function getForeignCriteria()
 	{
 		return array();
 	}
-	
+
 	/**
 	 * Gets the name of the uniquely identifying column for the given repository's entities.
 	 * May be overridden by child classes to return a column different from the default (id).
@@ -520,7 +532,7 @@ abstract class AbstractRestfulRepository extends EntityRepository
 	 *
 	 * @return QueryBuilder The initialized query builder.
 	 */
-	protected function _getBaseOneQueryBuilder()
+	protected final function _getBaseOneQueryBuilder()
 	{
 		$qb = $this->_em->createQueryBuilder()
 				->select('DISTINCT e')
@@ -531,11 +543,25 @@ abstract class AbstractRestfulRepository extends EntityRepository
 	}
 
 	/**
+	 * Gets the query builder for querying unique column values.
+	 *
+	 * @param string $field The name of the column for which distinct values are sought.
+	 * @return QueryBuilder The initialized query builder.
+	 */
+	protected final function _getBaseDistinctQueryBuilder($field)
+	{
+		$qb = $this->_em->createQueryBuilder()
+				->select('DISTINCT e.' . $field)
+				->from($this->getClassMetadata()->name, 'e');
+		return $qb;
+	}
+
+	/**
 	 * Gets the query builder for general entity queries.
 	 *
 	 * @return QueryBuilder The initialized query builder.
 	 */
-	protected function _getBaseAllQueryBuilder()
+	protected final function _getBaseAllQueryBuilder()
 	{
 		$qb = $this->_em->createQueryBuilder()
 				->select('DISTINCT e')
@@ -548,7 +574,7 @@ abstract class AbstractRestfulRepository extends EntityRepository
 	 *
 	 * @return QueryBuilder The initialized query builder.
 	 */
-	protected function _getBaseCountQueryBuilder()
+	protected final function _getBaseCountQueryBuilder()
 	{
 		$qb = $this->_em->createQueryBuilder()
 				->select('COUNT(DISTINCT e.id)')
@@ -607,17 +633,17 @@ abstract class AbstractRestfulRepository extends EntityRepository
 		$values->set($position, $this->_wrapValue($types, $position, $value));
 		return $position;
 	}
-	
+
 	/**
 	 * Sets the appropriate joins for foreign criteria.
-	 * 
+	 *
 	 * @param QueryBuilder $qb The query builder instance.
 	 * @param array $criteria The criteria tuples.
 	 */
 	private function _addForeignCriteriaToBuilder(QueryBuilder $qb, array &$criteria)
 	{
 		$foreignCriteria = static::getForeignCriteria();
-		
+
 		// iterate over criteria array
 		foreach ($criteria as $key => $value)
 		{
@@ -625,14 +651,14 @@ abstract class AbstractRestfulRepository extends EntityRepository
 			{
 				continue;
 			}
-			
+
 			$criterion = $foreignCriteria[$key];
 			// remove foreign criterion
 			unset ($criteria[$key]);
-			
+
 			// replace with appropriate simple criteria association
 			$criteria[$criterion['field']] = $value;
-			
+
 			// add selects, froms, and joins
 			if (isset($criterion['select']))
 			{
@@ -661,7 +687,7 @@ abstract class AbstractRestfulRepository extends EntityRepository
 	 *
 	 * @return QueryBuilder The updated query builder.
 	 */
-	protected function _addCriteriaToBuilder(QueryBuilder $qb, $alias, array $criteria)
+	protected final function _addCriteriaToBuilder(QueryBuilder $qb, $alias, array $criteria)
 	{
 		$this->_addForeignCriteriaToBuilder($qb, $criteria);
 		$expr = new ArrayCollection();
@@ -752,7 +778,7 @@ abstract class AbstractRestfulRepository extends EntityRepository
 	 * @param object|string|int|boolean|DateTime $value
 	 * @return string|int|DateTime The wrapped value
 	 */
-	protected function _wrapValue(ArrayCollection $types, $position, $value)
+	protected final function _wrapValue(ArrayCollection $types, $position, $value)
 	{
 		if (is_object($value))
 		{
