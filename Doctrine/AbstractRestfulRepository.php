@@ -145,8 +145,16 @@ abstract class AbstractRestfulRepository extends EntityRepository
 	 */
 	public function get($identifier, array $criteria = null)
 	{
-		if($criteria === null) {
-			return $this->find($identifier);
+		if($criteria === null)
+		{
+			if ($this->_getIdColumnName() === 'id')
+			{
+				return $this->find($identifier);
+			}
+			else
+			{
+				$criteria = array();
+			}
 		}
 
 		$qb = $this->_getBaseOneQueryBuilder()->setParameter('id', $identifier);
