@@ -130,7 +130,7 @@ abstract class AbstractRestfulRepository extends EntityRepository
 	 * @param array $criteria
 	 * @return int
 	 */
-	public function count(array $criteria)
+	public function count(array $criteria = array())
 	{
 		$qb = $this->_getBaseCountQueryBuilder();
 		$this->_addCriteriaToBuilder($qb, 'e', $this->sanitizeQuery($criteria));

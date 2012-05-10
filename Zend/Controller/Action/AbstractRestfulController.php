@@ -36,22 +36,24 @@ abstract class AbstractRestfulController extends \Zend_Controller_Action
 		switch($method) {
 			case 'get':
 				$query = $request->getQuery();
+				
+				// extract orderBy clause (i.e. sort)
+				if (isset($query['sort']))
+				{
+					$orderBy = array();
+					foreach (explode(',', substr($query['sort'], 1, -1)) as $ordering)
+					{
+						$orderBy[substr($ordering, 1)] = (substr($ordering, 0, 1) == '-' ? 'DESC' : 'ASC');
+					}
+
+					$service->setOrderBy($orderBy);
+					unset($query['sort']);
+				}
+				
 				// Convert values from their string representations
 				foreach ($query as $key => $value)
 				{
-					// pull out sort if it's defined
-					if (preg_match('/^sort\((.*)\)$/', $key, $matches))
-					{
-						$orderBy = array();
-						foreach (explode(',', $matches[1]) as $ordering)
-						{
-							$orderBy[substr($ordering, 1)] = (substr($ordering, 0, 1) == '-' ? 'DESC' : 'ASC');
-						}
-
-						$service->setOrderBy($orderBy);
-						unset($query[$key]);
-					}
-					elseif (is_numeric($value))
+					if (is_numeric($value))
 					{
 						if (strpos($value, '.'))
 						{
