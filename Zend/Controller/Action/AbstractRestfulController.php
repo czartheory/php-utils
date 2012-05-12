@@ -36,12 +36,12 @@ abstract class AbstractRestfulController extends \Zend_Controller_Action
 		switch($method) {
 			case 'get':
 				$query = $request->getQuery();
-				
+
 				// extract orderBy clause (i.e. sort)
 				if (isset($query['sort']))
 				{
 					$orderBy = array();
-					foreach (explode(',', substr($query['sort'], 1, -1)) as $ordering)
+					foreach (explode(',', $query['sort']) as $ordering)
 					{
 						$orderBy[substr($ordering, 1)] = (substr($ordering, 0, 1) == '-' ? 'DESC' : 'ASC');
 					}
@@ -49,7 +49,7 @@ abstract class AbstractRestfulController extends \Zend_Controller_Action
 					$service->setOrderBy($orderBy);
 					unset($query['sort']);
 				}
-				
+
 				// Convert values from their string representations
 				foreach ($query as $key => $value)
 				{

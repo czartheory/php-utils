@@ -1,0 +1,320 @@
+<?php
+namespace CzarTheory\Doctrine;
+
+use Doctrine\ORM\EntityRepository;
+use Doctrine\ORM\NativeQuery;
+use Doctrine\ORM\Query\ResultSetMapping;
+use PDO;
+
+/**
+ * @todo Description of AbstractNativeRestfulRepository
+ *
+ * @copyright   Copyright (c) 2012 by CzarTheory LLC.  All Rights Reserved.
+ * @author      Andrew Wheelwright <wheelwright.tech@gmail.com>
+ */
+abstract class AbstractNativeRestfulRepository extends EntityRepository
+{
+	/**
+	 * Gets the number of items available based upon the criteria given
+	 *
+	 * @param array $criteria
+	 * @return int
+	 */
+	public function count(array $criteria = array())
+	{
+		throw new NotImplementedException(__METHOD__);
+		$qb = $this->_getBaseCountQueryBuilder();
+		$this->_addCriteriaToBuilder($qb, 'e', $this->sanitizeQuery($criteria));
+		$query = $qb->getQuery();
+		$result = $query->getSingleScalarResult();
+		return $result;
+	}
+
+	/**
+	 * Gets a single entity from the database given the identifier and an optional set of criteria.
+	 *
+	 * @param string|int $id The identifier of the entity instance.
+	 * @param array $criteria The criteria for restricting the result set.
+	 * @return EntitySuperClass|null The requested Entity instance if found; otherwise null.
+	 */
+	public function get($identifier, array $criteria = null)
+	{
+		throw new NotImplementedException(__METHOD__);
+		if($criteria === null) {
+			return $this->find($identifier);
+		}
+
+		$qb = $this->_getBaseOneQueryBuilder()->setParameter('id', $identifier);
+		$this->_addCriteriaToBuilder($qb, 'e', $this->sanitizeQuery($criteria));
+		$query = $qb->getQuery();
+		$result = $query->getOneOrNullResult();
+		return $result;
+	}
+
+	/**
+	 * Gets a single entity from the database which matches the given criteria
+	 *
+	 * @param array $criteria The critera for finding the Entity instance.
+	 * @return EntitySuperClass|null The requested Entity instance if found; otherwise null.
+	 */
+	public function getOneBy(array $criteria)
+	{
+		throw new NotImplementedException(__METHOD__);
+		$qb = $this->_getBaseAllQueryBuilder()->setMaxResults(1);
+		$this->_addCriteriaToBuilder($qb, 'e', $criteria);
+		$query = $qb->getQuery();
+		$result = $query->getOneOrNullResult();
+		return $result;
+	}
+
+	/**
+	 * Gets the set of unique field entries in the repository.
+	 *
+	 * @param string $field The name of the field.
+	 * @param array $criteria The optional array of criteria for the query.
+	 * @return ???
+	 */
+	public function getDistinct($field, array $criteria = array())
+	{
+		throw new NotImplementedException(__METHOD__);
+		$qb = $this->_getBaseDistinctQueryBuilder($field);
+		$this->_addCriteriaToBuilder($qb, 'e', $this->sanitizeQuery($criteria));
+		$query = $qb->getQuery();
+		$result = $query->getScalarResult();
+		return $result;
+	}
+
+	/**
+	 * Gets a collection of entities matching the specified enhanced simple doctrine criteria.
+	 *
+	 * @param array $criteria The selection criteria.
+	 * @param array|null $orderBy An array of column names to sort order ('ASC' or 'DESC') mappings.
+	 * @param int|null The maximum number of records to return in the result set.
+	 * @param int|null The starting offset at which records will be included in the result set.
+	 * @return ArrayCollection The matching entities.
+	 */
+	public function getAll(array $criteria = array(), array $orderBy = array(), $limit = null, $offset = null)
+	{
+		$parts = $this->_addNativeCriteriaToQuery($this->_getBaseAllQuery(), 'e', $criteria);
+
+		if (isset($orderBy))
+		{
+			$parts['sort'] = $orderBy;
+		}
+
+		if (isset($limit))
+		{
+			$parts['limit'] = $limit;
+		}
+
+		if (isset($offset))
+		{
+			$parts['offset'] = $offset;
+		}
+
+		$query = $this->_buildNativeQuery($parts, $this->_getResultMapping());
+
+		$entities = $query->getResult();
+		return $entities;
+	}
+
+	abstract protected function _getBaseAllQuery();
+	abstract protected function _addFieldsToResultMap(ResultSetMapping $map);
+
+	private function _getResultMapping()
+	{
+		$map = new ResultSetMapping();
+		$map
+			->addEntityResult($this->getClassMetadata()->name, 'e')
+			->addFieldResult('e', 'id', 'id');
+
+		return $this->_addFieldsToResultMap($map);
+	}
+
+	/**
+	 * Builds a native query from the query object.
+	 * @param array $query An associative array of query parts.
+	 * @param ResultSetMapping $map The doctrine result set mapping.
+	 * @return NativeQuery The native query object.
+	 */
+	private function _buildNativeQuery(array $query, ResultSetMapping $map)
+	{
+		$parts = array('SELECT');
+		$useParams = false;
+
+		foreach ($query['select'] as $part)
+		{
+			$parts[] = $part;
+		}
+
+		if (isset($query['from']))
+		{
+			$parts[] = 'FROM';
+			foreach ($query['from'] as $part)
+			{
+				if (isset($part['join']))
+				{
+					$parts[] = sprintf('%s %s %s ON %s', strtoupper($part['join']['type']), $part['table'], $part['alias'], $part['join']['clause']);
+				}
+				else
+				{
+					$parts[] = sprintf('%s %s', $part['table'], $part['alias']);
+				}
+			}
+		}
+
+		if (isset($query['where']))
+		{
+			$parts[] = 'WHERE';
+			$parts[] = implode(' AND ', $query['where']['clauses']);
+			$useParams = true;
+		}
+
+		if (isset($query['group']))
+		{
+			$parts[] = 'GROUP BY';
+			$parts[] = implode(', ', $query['group']);
+		}
+
+		if (isset($query['sort']))
+		{
+			$parts[] = 'ORDER BY';
+			foreach ($query['sort'] as $field => $direction)
+			{
+				$parts[] = sprintf('e.%s %s', $field, $direction);
+			}
+		}
+
+		if (isset($query['limit']))
+		{
+			$parts[] = sprintf('LIMIT %d', $query['limit']);
+		}
+
+		if (isset($query['offset']))
+		{
+			$parts[] = sprintf('OFFSET %d', $query['OFFSET']);
+		}
+
+		$sql = implode(' ', $parts);
+
+		$native = $this->_em->createNativeQuery($sql, $map);
+		if ($useParams)
+		{
+			$native->setParameters($query['where']['values']);
+		}
+
+		return $native;
+	}
+
+	/**
+	 * Adds the specified criteria as native sql clauses.
+	 * @param array $query The query object.
+	 * @param string $alias The main table alias (should be 'e').
+	 * @param array $criteria The criteria to add.
+	 * @return array The update query object
+	 * @throws \InvalidArgumentException If the criteria contains an unsupported operator.
+	 */
+	private function _addNativeCriteriaToQuery(array $query, $alias, array $criteria)
+	{
+		$clauses = array();
+		$values = array();
+		$i = 0;
+		foreach ($criteria as $field => $criterion)
+		{
+			if (false === strpos($field, '.'))
+			{
+				$field = sprintf('%1$s.%2$s', $alias, $field);
+			}
+
+			if (is_array($criterion))
+			{
+				$value = isset($criterion['value']) ? $criterion['value'] : null;
+				if (isset($criterion['op']))
+				{
+					$op = strtoupper($criterion['op']);
+					switch ($op)
+					{
+						case 'LIKE':
+						case 'NOT LIKE':
+							$clauses[] = sprintf('%1$s %2$s \'%%?%%\'', $field, $op);
+							$values[++$i] = $value;
+							break;
+						case 'IN':
+						case 'NOT IN':
+							$clauses[] = sprintf('%1$s %2$s (%3$s)', $field, $op, $this->_wrapValue($value));
+							break;
+						case 'IS NULL':
+						case 'IS NOT NULL':
+							$clauses[] = sprintf('%1$s %2$s', $field, $op);
+							break;
+						case '==':
+						case '=':
+							$clauses[] = sprintf('%1$s = ?', $field);
+							$values[++$i] = $this->_wrapValue($value);
+							break;
+						case '!=':
+						case '<>':
+							$clauses[] = sprintf('%1$s <> ?', $field);
+							$values[++$i] = $this->_wrapValue($value);
+							break;
+						case '>':
+						case '<':
+						case '>=':
+						case '<=':
+							$clauses[] = sprintf('%1$s %2$s ?', $field, $op);
+							$values[++$i] = $this->_wrapValue($value);
+							break;
+						default:
+							throw new \InvalidArgumentException('Unsupported query criteria operator: ' . $op);
+					}
+				}
+				else
+				{
+					$clauses[] = sprintf('%1$s IN (%2$s)', $field, $this->_wrapValue($value));
+				}
+			}
+			elseif (null === $value)
+			{
+				$clauses[] = sprintf('%1$s IS NULL', $field);
+			}
+			else
+			{
+				$clauses[] = sprintf('%1$s = ?', $field);
+				$values[++$i] = $this->_wrapValue($value);
+			}
+		}
+
+		if (!empty($clauses))
+		{
+			$query['where'] = array('clauses' => $clauses, 'values' => $values);
+		}
+
+		return $query;
+	}
+
+	/**
+	 * Turns a value into a SQL safe value.
+	 * @param mixed $value The value to sanitize.
+	 * @return mixed The wrapped value.
+	 */
+	private function _wrapValue($value)
+	{
+		if (is_array($value))
+		{
+			foreach ($value as $i => $data)
+			{
+				$value[$i] = PDO::quote($data);
+			}
+
+			$value = implode(', ', $value);
+		}
+		else
+		{
+			$value = PDO::quote($value);
+		}
+
+		return $value;
+	}
+}
+
+?>
