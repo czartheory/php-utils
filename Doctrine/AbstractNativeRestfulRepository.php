@@ -1,10 +1,10 @@
 <?php
 namespace CzarTheory\Doctrine;
 
+use CzarTheory\Utilities\NotImplementedException;
 use Doctrine\ORM\EntityRepository;
 use Doctrine\ORM\NativeQuery;
 use Doctrine\ORM\Query\ResultSetMapping;
-use PDO;
 
 /**
  * @todo Description of AbstractNativeRestfulRepository
@@ -22,10 +22,10 @@ abstract class AbstractNativeRestfulRepository extends EntityRepository
 	 */
 	public function count(array $criteria = array())
 	{
-		throw new NotImplementedException(__METHOD__);
-		$qb = $this->_getBaseCountQueryBuilder();
-		$this->_addCriteriaToBuilder($qb, 'e', $this->sanitizeQuery($criteria));
-		$query = $qb->getQuery();
+		$parts = $this->_addNativeCriteriaToQuery($this->_getBaseCountQuery(), $criteria);
+		$rsm = new ResultSetMapping();
+		$rsm->addScalarResult('Count', 'Count');
+		$query = $this->_buildNativeQuery($parts, $rsm);
 		$result = $query->getSingleScalarResult();
 		return $result;
 	}
@@ -39,14 +39,15 @@ abstract class AbstractNativeRestfulRepository extends EntityRepository
 	 */
 	public function get($identifier, array $criteria = null)
 	{
-		throw new NotImplementedException(__METHOD__);
-		if($criteria === null) {
+		if (null === $criteria)
+		{
 			return $this->find($identifier);
 		}
 
-		$qb = $this->_getBaseOneQueryBuilder()->setParameter('id', $identifier);
-		$this->_addCriteriaToBuilder($qb, 'e', $this->sanitizeQuery($criteria));
-		$query = $qb->getQuery();
+		$criteria['id'] = $identifier;
+		$parts = $this->_addNativeCriteriaToQuery($this->_getBaseOneQuery(), $criteria);
+		$parts['limit'] = 1;
+		$query = $this->_buildNativeQuery($parts, $this->_getResultMapping());
 		$result = $query->getOneOrNullResult();
 		return $result;
 	}
@@ -59,10 +60,9 @@ abstract class AbstractNativeRestfulRepository extends EntityRepository
 	 */
 	public function getOneBy(array $criteria)
 	{
-		throw new NotImplementedException(__METHOD__);
-		$qb = $this->_getBaseAllQueryBuilder()->setMaxResults(1);
-		$this->_addCriteriaToBuilder($qb, 'e', $criteria);
-		$query = $qb->getQuery();
+		$parts = $this->_addNativeCriteriaToQuery($this->_getBaseQuery(), $criteria);
+		$parts['limit'] = 1;
+		$query = $this->_buildNativeQuery($parts, $this->_getResultMapping());
 		$result = $query->getOneOrNullResult();
 		return $result;
 	}
@@ -72,16 +72,16 @@ abstract class AbstractNativeRestfulRepository extends EntityRepository
 	 *
 	 * @param string $field The name of the field.
 	 * @param array $criteria The optional array of criteria for the query.
-	 * @return ???
+	 * @return ArrayCollection The collection of unique entries.
 	 */
 	public function getDistinct($field, array $criteria = array())
 	{
-		throw new NotImplementedException(__METHOD__);
-		$qb = $this->_getBaseDistinctQueryBuilder($field);
-		$this->_addCriteriaToBuilder($qb, 'e', $this->sanitizeQuery($criteria));
-		$query = $qb->getQuery();
-		$result = $query->getScalarResult();
-		return $result;
+		$parts = $this->_addNativeCriteriaToQuery($this->_getBaseDistinctQuery($field), $criteria);
+		$rsm = new ResultSetMapping();
+		$rsm->addScalarResult($field, $field);
+		$query = $this->_buildNativeQuery($parts, $rsm);
+		$results = $query->getScalarResult();
+		return $results;
 	}
 
 	/**
@@ -95,7 +95,7 @@ abstract class AbstractNativeRestfulRepository extends EntityRepository
 	 */
 	public function getAll(array $criteria = array(), array $orderBy = array(), $limit = null, $offset = null)
 	{
-		$parts = $this->_addNativeCriteriaToQuery($this->_getBaseAllQuery(), 'e', $criteria);
+		$parts = $this->_addNativeCriteriaToQuery($this->_getBaseQuery(), $criteria);
 
 		if (isset($orderBy))
 		{
@@ -113,12 +113,13 @@ abstract class AbstractNativeRestfulRepository extends EntityRepository
 		}
 
 		$query = $this->_buildNativeQuery($parts, $this->_getResultMapping());
-
 		$entities = $query->getResult();
 		return $entities;
 	}
 
-	abstract protected function _getBaseAllQuery();
+	abstract protected function _getBaseCountQuery();
+	abstract protected function _getBaseDistinctQuery($field);
+	abstract protected function _getBaseQuery();
 	abstract protected function _addFieldsToResultMap(ResultSetMapping $map);
 
 	private function _getResultMapping()
@@ -192,7 +193,7 @@ abstract class AbstractNativeRestfulRepository extends EntityRepository
 
 		if (isset($query['offset']))
 		{
-			$parts[] = sprintf('OFFSET %d', $query['OFFSET']);
+			$parts[] = sprintf('OFFSET %d', $query['offset']);
 		}
 
 		$sql = implode(' ', $parts);
@@ -214,18 +215,13 @@ abstract class AbstractNativeRestfulRepository extends EntityRepository
 	 * @return array The update query object
 	 * @throws \InvalidArgumentException If the criteria contains an unsupported operator.
 	 */
-	private function _addNativeCriteriaToQuery(array $query, $alias, array $criteria)
+	private function _addNativeCriteriaToQuery(array $query, array $criteria)
 	{
 		$clauses = array();
 		$values = array();
 		$i = 0;
 		foreach ($criteria as $field => $criterion)
 		{
-			if (false === strpos($field, '.'))
-			{
-				$field = sprintf('%1$s.%2$s', $alias, $field);
-			}
-
 			if (is_array($criterion))
 			{
 				$value = isset($criterion['value']) ? $criterion['value'] : null;
@@ -241,7 +237,7 @@ abstract class AbstractNativeRestfulRepository extends EntityRepository
 							break;
 						case 'IN':
 						case 'NOT IN':
-							$clauses[] = sprintf('%1$s %2$s (%3$s)', $field, $op, $this->_wrapValue($value));
+							$clauses[] = sprintf('%1$s %2$s (%3$s)', $field, $op, $value);
 							break;
 						case 'IS NULL':
 						case 'IS NOT NULL':
@@ -250,19 +246,19 @@ abstract class AbstractNativeRestfulRepository extends EntityRepository
 						case '==':
 						case '=':
 							$clauses[] = sprintf('%1$s = ?', $field);
-							$values[++$i] = $this->_wrapValue($value);
+							$values[++$i] = $value;
 							break;
 						case '!=':
 						case '<>':
 							$clauses[] = sprintf('%1$s <> ?', $field);
-							$values[++$i] = $this->_wrapValue($value);
+							$values[++$i] = $value;
 							break;
 						case '>':
 						case '<':
 						case '>=':
 						case '<=':
 							$clauses[] = sprintf('%1$s %2$s ?', $field, $op);
-							$values[++$i] = $this->_wrapValue($value);
+							$values[++$i] = $value;
 							break;
 						default:
 							throw new \InvalidArgumentException('Unsupported query criteria operator: ' . $op);
@@ -270,17 +266,17 @@ abstract class AbstractNativeRestfulRepository extends EntityRepository
 				}
 				else
 				{
-					$clauses[] = sprintf('%1$s IN (%2$s)', $field, $this->_wrapValue($value));
+					$clauses[] = sprintf('%1$s IN (%2$s)', $field, $value);
 				}
 			}
-			elseif (null === $value)
+			elseif (null === $criterion)
 			{
 				$clauses[] = sprintf('%1$s IS NULL', $field);
 			}
 			else
 			{
 				$clauses[] = sprintf('%1$s = ?', $field);
-				$values[++$i] = $this->_wrapValue($value);
+				$values[++$i] = $criterion;
 			}
 		}
 
@@ -303,14 +299,17 @@ abstract class AbstractNativeRestfulRepository extends EntityRepository
 		{
 			foreach ($value as $i => $data)
 			{
-				$value[$i] = PDO::quote($data);
+				if (is_string($data))
+				{
+					$value[$i] = "'$data'";
+				}
 			}
 
 			$value = implode(', ', $value);
 		}
-		else
+		elseif (is_string($value))
 		{
-			$value = PDO::quote($value);
+			$value = "'$value'";
 		}
 
 		return $value;
