@@ -58,7 +58,7 @@ abstract class AbstractRestfulRepository extends EntityRepository
 	private function _prepForeignAttributes(array $attributes)
 	{
 		$mappings = array();
-		foreach ($attributes as $index => $fieldName)
+		foreach ($attributes as $fieldName)
 		{
 			$functionName = ucFirst(str_replace('_', '', $fieldName));
 			$mapping = array('setNew' => 'set' . $functionName);
@@ -113,7 +113,7 @@ abstract class AbstractRestfulRepository extends EntityRepository
 	{
 		$newArray = array();
 		$size = count($attributes);
-		for ($i = 0; $i < $size; $i++)
+		for ($i = 0; $i < $size; ++$i)
 		{
 			$key = $attributes[$i];
 			$newArray[$key] = 'set' . ucfirst(str_replace('_', '', $key));
@@ -130,6 +130,40 @@ abstract class AbstractRestfulRepository extends EntityRepository
 	public function count(array $criteria = array())
 	{
 		$qb = $this->_getBaseCountQueryBuilder();
+		$this->_addCriteriaToBuilder($qb, 'e', $this->sanitizeQuery($criteria));
+		$query = $qb->getQuery();
+		$result = $query->getSingleScalarResult();
+		return $result;
+	}
+
+
+	/**
+	 * Gets the number of items available based upon the criteria given
+	 *
+	 * @param string $field The name of the field for which the minimum is sought.
+	 * @param array $criteria The criteria for restricting the result set.
+	 * @return mixed The minimum value.
+	 */
+	public function min($field, array $criteria = array())
+	{
+		$qb = $this->_getBaseMinQueryBuilder($field);
+		$this->_addCriteriaToBuilder($qb, 'e', $this->sanitizeQuery($criteria));
+		$query = $qb->getQuery();
+		$result = $query->getSingleScalarResult();
+		return $result;
+	}
+
+
+	/**
+	 * Gets the number of items available based upon the criteria given
+	 *
+	 * @param string $field The name of the field for which the maximum is sought.
+	 * @param array $criteria The criteria for restricting the result set.
+	 * @return mixed The maximum value.
+	 */
+	public function max($field, array $criteria = array())
+	{
+		$qb = $this->_getBaseMaxQueryBuilder($field);
 		$this->_addCriteriaToBuilder($qb, 'e', $this->sanitizeQuery($criteria));
 		$query = $qb->getQuery();
 		$result = $query->getSingleScalarResult();
@@ -586,6 +620,34 @@ abstract class AbstractRestfulRepository extends EntityRepository
 	{
 		$qb = $this->_em->createQueryBuilder()
 				->select('COUNT(DISTINCT e.id)')
+				->from($this->getClassMetadata()->name, 'e');
+		return $qb;
+	}
+
+	/**
+	 * Gets the minimum value query builder.
+	 *
+	 * @param string $field The name of the field for which the minimum is sought.
+	 * @return QueryBuilder The initialized query builder.
+	 */
+	protected final function _getBaseMinQueryBuilder($field)
+	{
+		$qb = $this->_em->createQueryBuilder()
+				->select('MIN(e.id)')
+				->from($this->getClassMetadata()->name, 'e');
+		return $qb;
+	}
+
+	/**
+	 * Gets the minimum value query builder.
+	 *
+	 * @param string $field The name of the field for which the maximum is sought.
+	 * @return QueryBuilder The initialized query builder.
+	 */
+	protected final function _getBaseMaxQueryBuilder($field)
+	{
+		$qb = $this->_em->createQueryBuilder()
+				->select('MAX(e.id)')
 				->from($this->getClassMetadata()->name, 'e');
 		return $qb;
 	}
