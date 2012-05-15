@@ -633,7 +633,7 @@ abstract class AbstractRestfulRepository extends EntityRepository
 	protected final function _getBaseMinQueryBuilder($field)
 	{
 		$qb = $this->_em->createQueryBuilder()
-				->select('MIN(e.id)')
+				->select('MIN(e.' . $field . ')')
 				->from($this->getClassMetadata()->name, 'e');
 		return $qb;
 	}
@@ -647,7 +647,7 @@ abstract class AbstractRestfulRepository extends EntityRepository
 	protected final function _getBaseMaxQueryBuilder($field)
 	{
 		$qb = $this->_em->createQueryBuilder()
-				->select('MAX(e.id)')
+				->select('MAX(e.' . $field . ')')
 				->from($this->getClassMetadata()->name, 'e');
 		return $qb;
 	}

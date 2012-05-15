@@ -31,6 +31,40 @@ abstract class AbstractNativeRestfulRepository extends EntityRepository
 	}
 
 	/**
+	 * Gets the minimum value of the specified field.
+	 *
+	 * @param string $field The field for which the minimum value is sought.
+	 * @param array $criteria The selection criteria.
+	 * @return mixed The minimum value.
+	 */
+	public function min($field, array $criteria = array())
+	{
+		$parts = $this->_addNativeCriteriaToQuery($this->_getBaseMinQuery($field), $criteria);
+		$rsm = new ResultSetMapping();
+		$rsm->addScalarResult('Min', 'Min');
+		$query = $this->_buildNativeQuery($parts, $rsm);
+		$result = $query->getSingleScalarResult();
+		return $result;
+	}
+
+	/**
+	 * Gets the maximum value of the specified field.
+	 *
+	 * @param string $field The field for which the maximum value is sought.
+	 * @param array $criteria The selection criteria.
+	 * @return mixed The maximum value.
+	 */
+	public function max($field, array $criteria = array())
+	{
+		$parts = $this->_addNativeCriteriaToQuery($this->_getBaseMaxQuery($field), $criteria);
+		$rsm = new ResultSetMapping();
+		$rsm->addScalarResult('Max', 'Max');
+		$query = $this->_buildNativeQuery($parts, $rsm);
+		$result = $query->getSingleScalarResult();
+		return $result;
+	}
+
+	/**
 	 * Gets a single entity from the database given the identifier and an optional set of criteria.
 	 *
 	 * @param string|int $id The identifier of the entity instance.
@@ -97,7 +131,7 @@ abstract class AbstractNativeRestfulRepository extends EntityRepository
 	{
 		$parts = $this->_addNativeCriteriaToQuery($this->_getBaseQuery(), $criteria);
 
-		if (isset($orderBy))
+		if (!empty($orderBy))
 		{
 			$parts['sort'] = $orderBy;
 		}
@@ -117,6 +151,8 @@ abstract class AbstractNativeRestfulRepository extends EntityRepository
 		return $entities;
 	}
 
+	abstract protected function _getBaseMinQuery($field);
+	abstract protected function _getBaseMaxQuery($field);
 	abstract protected function _getBaseCountQuery();
 	abstract protected function _getBaseDistinctQuery($field);
 	abstract protected function _getBaseQuery();
