@@ -51,17 +51,18 @@ abstract class AbstractRestfulController extends \Zend_Controller_Action
 				}
 
 				// Convert values from their string representations
+				$temp;
 				foreach ($query as $key => $value)
 				{
-					if (is_numeric($value))
+					if (is_numeric($value)) // could start with a digit but not be a number
 					{
-						if (strpos($value, '.'))
+						if (strpos($value, '.') && (($temp = doubleval($value)) == $value))
 						{
-							$query[$key] = doubleval($value);
+							$query[$key] = $temp;
 						}
-						else
+						elseif (($temp = intval($value)) == $value)
 						{
-							$query[$key] = intval($value);
+							$query[$key] = $temp;
 						}
 					}
 				}
