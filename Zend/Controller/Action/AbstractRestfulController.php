@@ -81,7 +81,16 @@ abstract class AbstractRestfulController extends \Zend_Controller_Action
 
 				if(null !== $id)
 				{
-					$view->entityService = $service->get($id);
+					$entityService = $service->get($id);
+					if (isset($entityService))
+					{
+						$view->entityService = $service->get($id);
+					}
+					else
+					{
+						$this->_response->setHttpResponseCode(403);
+						$view->error = 'Resource not found.';
+					}
 				}
 				break;
 

@@ -438,7 +438,7 @@ abstract class AbstractRestfulRepository extends AbstractCudRepository
 			$val = $value;
 			if (is_array($value))
 			{
-				$val = isset($val['value']) ? $val['value'] : null;
+				$val = isset($val['value']) ? $val['value'] : $value;
 				if (isset($value['op']))
 				{
 					$op = strtoupper($value['op']);

@@ -4,6 +4,7 @@ namespace CzarTheory\Doctrine;
 use CzarTheory\Utilities\NotImplementedException;
 use Doctrine\ORM\NativeQuery;
 use Doctrine\ORM\Query\ResultSetMapping;
+use Doctrine\ORM\Query\ResultSetMappingBuilder;
 
 /**
  *
@@ -154,30 +155,61 @@ abstract class AbstractNativeRestfulRepository extends AbstractCudRepository
 		return $entities;
 	}
 
-	abstract protected function _getBaseMinQuery($field);
-	abstract protected function _getBaseMaxQuery($field);
-	abstract protected function _getBaseCountQuery();
-	abstract protected function _getBaseDistinctQuery($field);
 	abstract protected function _getBaseQuery();
-	abstract protected function _addFieldsToResultMap(ResultSetMapping $map);
 
-	private function _getResultMapping()
+	protected function _getBaseCountQuery()
 	{
-		$map = new ResultSetMapping();
-		$map
-			->addEntityResult($this->getClassMetadata()->name, 'e')
-			->addFieldResult('e', 'id', 'id');
+		$query = $this->_getBaseQuery();
+		$query['select'] = array('COUNT(*) AS Count');
+		return $query;
+	}
 
-		return $this->_addFieldsToResultMap($map);
+	protected function _getBaseDistinctQuery($field)
+	{
+		$query = $this->_getBaseQuery();
+		$query['select'] = array('DISTINCT e.' . $field);
+		return $query;
+	}
+
+	protected function _getBaseMaxQuery($field)
+	{
+		$query = $this->_getBaseQuery();
+		$query['select'] = array('MAX(' . $field . ') AS Max');
+		return $query;
+	}
+
+	protected function _getBaseMinQuery($field)
+	{
+		$query = $this->_getBaseQuery();
+		$query['select'] = array('MIN(' . $field . ') AS Min');
+		return $query;
+	}
+
+	protected function _getResultMapping()
+	{
+		$map = new ResultSetMappingBuilder($this->_em);
+		$map->addRootEntityFromClassMetadata($this->_class->name, 'e');
+		return $map;
+	}
+
+	/**
+	 * Overridable method for getting an associative array of criteria keys
+	 * to foreign query expressions.
+	 *
+	 * @return array The array of foreign criteria.
+	 */
+	protected static function getForeignCriteria()
+	{
+		return array();
 	}
 
 	/**
 	 * Builds a native query from the query object.
 	 * @param array $query An associative array of query parts.
-	 * @param ResultSetMapping $map The doctrine result set mapping.
+	 * @param ResultSetMapping|ResultSetMappingBuilder $map The doctrine result set mapping.
 	 * @return NativeQuery The native query object.
 	 */
-	private function _buildNativeQuery(array $query, ResultSetMapping $map)
+	protected final function _buildNativeQuery(array $query, $map)
 	{
 		$parts = array('SELECT');
 		$useParams = false;
@@ -247,6 +279,50 @@ abstract class AbstractNativeRestfulRepository extends AbstractCudRepository
 	}
 
 	/**
+	 * Sets the appropriate joins for foreign criteria.
+	 *
+	 * @param QueryBuilder $qb The query builder instance.
+	 * @param array $criteria The criteria tuples.
+	 */
+	private function _addForeignCriteriaToQuery(array &$query, array &$criteria)
+	{
+		$foreignCriteria = static::getForeignCriteria();
+
+		// iterate over criteria array
+		foreach ($criteria as $key => $value)
+		{
+			if (!isset($foreignCriteria[$key]))
+			{
+				continue;
+			}
+
+			$criterion = $foreignCriteria[$key];
+			// remove foreign criterion
+			unset ($criteria[$key]);
+
+			// replace with appropriate simple criteria association
+			$criteria[$criterion['field']] = $value;
+
+			// add selects, froms, and joins
+			if (isset($criterion['select']))
+			{
+				foreach ($criterion['select'] as $select)
+				{
+					$query['select'][] = $select;
+				}
+			}
+
+			if (isset($criterion['from']))
+			{
+				foreach ($criterion['from'] as $from)
+				{
+					$query['from'][] = $from;
+				}
+			}
+		}
+	}
+
+	/**
 	 * Adds the specified criteria as native sql clauses.
 	 * @param array $query The query object.
 	 * @param string $alias The main table alias (should be 'e').
@@ -254,8 +330,9 @@ abstract class AbstractNativeRestfulRepository extends AbstractCudRepository
 	 * @return array The update query object
 	 * @throws \InvalidArgumentException If the criteria contains an unsupported operator.
 	 */
-	private function _addNativeCriteriaToQuery(array $query, array $criteria)
+	protected final function _addNativeCriteriaToQuery(array $query, array $criteria)
 	{
+		$this->_addForeignCriteriaToQuery($query, $criteria);
 		$clauses = array();
 		$values = array();
 		$i = 0;
@@ -263,7 +340,7 @@ abstract class AbstractNativeRestfulRepository extends AbstractCudRepository
 		{
 			if (is_array($criterion))
 			{
-				$value = isset($criterion['value']) ? $criterion['value'] : null;
+				$value = isset($criterion['value']) ? $criterion['value'] : $criterion;
 				if (isset($criterion['op']))
 				{
 					$op = strtoupper($criterion['op']);
@@ -276,7 +353,8 @@ abstract class AbstractNativeRestfulRepository extends AbstractCudRepository
 							break;
 						case 'IN':
 						case 'NOT IN':
-							$clauses[] = sprintf('%1$s %2$s (%3$s)', $field, $op, $value);
+							$clauses[] = sprintf('%1$s %2$s (?)', $field, $op);
+							$values[++$i] = values;
 							break;
 						case 'IS NULL':
 						case 'IS NOT NULL':
@@ -305,7 +383,8 @@ abstract class AbstractNativeRestfulRepository extends AbstractCudRepository
 				}
 				else
 				{
-					$clauses[] = sprintf('%1$s IN (%2$s)', $field, $value);
+					$clauses[] = sprintf('%1$s IN (?)', $field);
+					$values[++$i] = $value;
 				}
 			}
 			elseif (null === $criterion)
@@ -327,5 +406,3 @@ abstract class AbstractNativeRestfulRepository extends AbstractCudRepository
 		return $query;
 	}
 }
-
-?>
