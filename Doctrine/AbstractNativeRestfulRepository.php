@@ -2,17 +2,20 @@
 namespace CzarTheory\Doctrine;
 
 use CzarTheory\Utilities\NotImplementedException;
-use Doctrine\ORM\EntityRepository;
 use Doctrine\ORM\NativeQuery;
 use Doctrine\ORM\Query\ResultSetMapping;
 
 /**
- * @todo Description of AbstractNativeRestfulRepository
+ *
+ * Extends from the CUD, to add the 'R'
+ * But this one is all squeaky with native SQL
+ *
+ * @todo Description of AbstractNativeRestfulRepository... done!
  *
  * @copyright   Copyright (c) 2012 by CzarTheory LLC.  All Rights Reserved.
  * @author      Andrew Wheelwright <wheelwright.tech@gmail.com>
  */
-abstract class AbstractNativeRestfulRepository extends EntityRepository
+abstract class AbstractNativeRestfulRepository extends AbstractCudRepository
 {
 	/**
 	 * Gets the number of items available based upon the criteria given
@@ -322,33 +325,6 @@ abstract class AbstractNativeRestfulRepository extends EntityRepository
 		}
 
 		return $query;
-	}
-
-	/**
-	 * Turns a value into a SQL safe value.
-	 * @param mixed $value The value to sanitize.
-	 * @return mixed The wrapped value.
-	 */
-	private function _wrapValue($value)
-	{
-		if (is_array($value))
-		{
-			foreach ($value as $i => $data)
-			{
-				if (is_string($data))
-				{
-					$value[$i] = "'$data'";
-				}
-			}
-
-			$value = implode(', ', $value);
-		}
-		elseif (is_string($value))
-		{
-			$value = "'$value'";
-		}
-
-		return $value;
 	}
 }
 
