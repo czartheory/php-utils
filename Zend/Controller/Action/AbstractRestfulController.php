@@ -71,7 +71,7 @@ abstract class AbstractRestfulController extends \Zend_Controller_Action
 					unset($query['sort']);
 				}
 
-				$service->setCriteria($query);
+				$service->addCriteria($query);
 				$limit = $request->getParam('rangeLimit');
 				if(isset($limit)){
 					$offset = $request->getParam('rangeOffset');
