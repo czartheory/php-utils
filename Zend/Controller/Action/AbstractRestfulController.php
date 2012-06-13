@@ -37,24 +37,15 @@ abstract class AbstractRestfulController extends \Zend_Controller_Action
 			case 'get':
 				$query = $request->getQuery();
 
-				// extract orderBy clause (i.e. sort)
-				if (isset($query['sort']))
-				{
-					$orderBy = array();
-					foreach (explode(',', $query['sort']) as $ordering)
-					{
-						$orderBy[substr($ordering, 1)] = (substr($ordering, 0, 1) == '-' ? 'DESC' : 'ASC');
-					}
-
-					$service->setOrderBy($orderBy);
-					unset($query['sort']);
-				}
-
 				// Convert values from their string representations
 				$temp;
 				foreach ($query as $key => $value)
 				{
-					if (is_numeric($value)) // could start with a digit but not be a number
+					if (substr($value, 0, 1) == '(' && substr($value, -1, 1) == ')') // array
+					{
+						$query[$key] = explode(',', substr($value, 1, -1));
+					}
+					elseif (is_numeric($value)) // could start with a digit but not be a number
 					{
 						if (strpos($value, '.') && (($temp = doubleval($value)) == $value))
 						{
@@ -65,6 +56,19 @@ abstract class AbstractRestfulController extends \Zend_Controller_Action
 							$query[$key] = $temp;
 						}
 					}
+				}
+
+				// extract orderBy clause (i.e. sort)
+				if (isset($query['sort']))
+				{
+					$orderBy = array();
+					foreach ($query['sort'] as $ordering)
+					{
+						$orderBy[substr($ordering, 1)] = (substr($ordering, 0, 1) == '-' ? 'DESC' : 'ASC');
+					}
+
+					$service->setOrderBy($orderBy);
+					unset($query['sort']);
 				}
 
 				$service->setCriteria($query);
