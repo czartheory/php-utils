@@ -87,10 +87,7 @@ abstract class AbstractRestfulRepository extends AbstractCudRepository
 			}
 		}
 
-		$qb = $this->_getBaseDistinctQueryBuilder()
-			->andWhere('e.' . $this->_getIdColumnName() . ' = :id')
-			->setMaxResults(1)
-			->setParameter('id', $identifier);
+		$qb = $this->_getBaseOneQueryBuilder()->setParameter('id', $identifier);
 		$this->_addCriteriaToBuilder($qb, 'e', $this->sanitizeQuery($criteria));
 		$query = $qb->getQuery();
 		$result = $query->getOneOrNullResult();
@@ -238,6 +235,19 @@ abstract class AbstractRestfulRepository extends AbstractCudRepository
 	protected function _getQueryParameters()
 	{
 		return array();
+	}
+
+	/**
+	 * Gets the query builder for entity id based queries.
+	 *
+	 * @return QueryBuilder The initialized query builder.
+	 */
+	protected final function _getBaseOneQueryBuilder()
+	{
+		$qb = $this->_em->createQueryBuilder()
+				->select('DISTINCT e')
+				->from($this->getClassMetadata()->name, 'e');
+		return $qb;
 	}
 
 	/**
