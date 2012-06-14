@@ -83,7 +83,7 @@ abstract class AbstractNativeRestfulRepository extends AbstractCudRepository
 		}
 
 		$criteria['id'] = $identifier;
-		$parts = $this->_addNativeCriteriaToQuery($this->_getBaseOneQuery(), $criteria);
+		$parts = $this->_addNativeCriteriaToQuery($this->_getBaseDistinctQuery(), $criteria);
 		$parts['limit'] = 1;
 		$query = $this->_buildNativeQuery($parts, $this->_getResultMapping());
 		$result = $query->getOneOrNullResult();
