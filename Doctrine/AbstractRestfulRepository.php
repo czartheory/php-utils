@@ -75,7 +75,7 @@ abstract class AbstractRestfulRepository extends AbstractCudRepository
 	 */
 	public function get($identifier, array $criteria = null)
 	{
-		if($criteria === null)
+		if(empty($criteria))
 		{
 			if ($this->_getIdColumnName() === 'id')
 			{
@@ -246,7 +246,9 @@ abstract class AbstractRestfulRepository extends AbstractCudRepository
 	{
 		$qb = $this->_em->createQueryBuilder()
 				->select('DISTINCT e')
-				->from($this->getClassMetadata()->name, 'e');
+				->from($this->getClassMetadata()->name, 'e')
+				->andWhere('e.' . $this->_getIdColumnName() . ' = :id')
+				->setMaxResults(1);
 		return $qb;
 	}
 
