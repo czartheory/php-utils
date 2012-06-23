@@ -71,6 +71,14 @@ interface RestfulService
 	 */
 	public function getAll();
 
+    /**
+     * Retrieves a single entity based on criteria, wrapped as a service or view-proxy.
+     *
+     * @param array $criteria The collection of enhanced simple doctrine criteria tuples to apply to the query, if any.
+     * @return AbstractEntityService|AbstractEntityProxy|null The wrapped entity or null if not found.
+     */
+    public function getOneBy(array $criteria);
+
 	/**
 	 * Gets the count of Items available with a similar getAll() method
 	 * @return int the number of items counted

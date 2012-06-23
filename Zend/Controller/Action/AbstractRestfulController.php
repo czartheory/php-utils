@@ -106,15 +106,22 @@ abstract class AbstractRestfulController extends \Zend_Controller_Action
 				break;
 
 			case 'post':
-				$form->setMethod(\Zend_Form::METHOD_POST);
 				$post = $request->getPost();
-
-				if (!$form->isValid($post))
+				$values = $post;
+				if (isset($form))
 				{
-					$view->error = array('invalid' => $form->getMessages());
-					$this->_response->setHttpResponseCode(400);
+					$form->setMethod(\Zend_Form::METHOD_POST);
+					if (!$form->isValid($post))
+					{
+						$view->error = array('invalid' => $form->getMessages());
+						$this->_response->setHttpResponseCode(400);
+						break;
+					}
+
+					$values = $form->getValidValues($post);
 				}
-				elseif (!$service->canCreate())
+
+				if (!$service->canCreate())
 				{
 					$view->error = array(
 						'message' => "User is Not Authorized",
@@ -125,7 +132,7 @@ abstract class AbstractRestfulController extends \Zend_Controller_Action
 				}
 				else
 				{
-					$view->entityService = $service->create($form->getValidValues($post));
+					$view->entityService = $service->create($values);
 					$this->_postHappened = true;
 				}
 				break;

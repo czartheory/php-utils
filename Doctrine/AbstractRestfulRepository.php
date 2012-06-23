@@ -136,6 +136,11 @@ abstract class AbstractRestfulRepository extends AbstractCudRepository
 	 */
 	public function getAll(array $criteria = array(), array $orderBy = array(), $limit = null, $offset = null)
 	{
+		if (empty($criteria))
+		{
+			return $this->findBy($criteria, $orderBy, $limit, $offset);
+		}
+
 		$qb = $this->_getBaseAllQueryBuilder();
 		$this->_addCriteriaToBuilder($qb, 'e', $this->sanitizeQuery($criteria));
 

@@ -143,11 +143,11 @@ abstract class AbstractNativeRestfulRepository extends AbstractCudRepository
 		if (isset($limit))
 		{
 			$parts['limit'] = $limit;
-		}
 
-		if (isset($offset))
-		{
-			$parts['offset'] = $offset;
+			if (isset($offset))
+			{
+				$parts['offset'] = $offset;
+			}
 		}
 
 		$query = $this->_buildNativeQuery($parts, $this->_getResultMapping());
