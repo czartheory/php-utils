@@ -106,22 +106,22 @@ abstract class AbstractRestfulController extends \Zend_Controller_Action
 				break;
 
 			case 'post':
-				$post = $request->getPost();
-				$values = $post;
-				if (isset($form))
+				if (!isset($form))
 				{
-					$form->setMethod(\Zend_Form::METHOD_POST);
-					if (!$form->isValid($post))
-					{
-						$view->error = array('invalid' => $form->getMessages());
-						$this->_response->setHttpResponseCode(400);
-						break;
-					}
-
-					$values = $form->getValidValues($post);
+					$this->_response->setHttpResponseCode(500);
+					$view->error = 'Form validator missing for ' . strtoupper($method) . ' request.';
+					break;
 				}
 
-				if (!$service->canCreate())
+				$form->setMethod(\Zend_Form::METHOD_POST);
+				$post = $request->getPost();
+
+				if (!$form->isValid($post))
+				{
+					$view->error = array('invalid' => $form->getMessages());
+					$this->_response->setHttpResponseCode(400);
+				}
+				elseif (!$service->canCreate())
 				{
 					$view->error = array(
 						'message' => "User is Not Authorized",
@@ -132,12 +132,19 @@ abstract class AbstractRestfulController extends \Zend_Controller_Action
 				}
 				else
 				{
-					$view->entityService = $service->create($values);
+					$view->entityService = $service->create($form->getValidValues($post));
 					$this->_postHappened = true;
 				}
 				break;
 
 			case 'put':
+				if (!isset($form))
+				{
+					$this->_response->setHttpResponseCode(500);
+					$view->error = 'Form validator missing for ' . strtoupper($method) . ' request.';
+					break;
+				}
+
 				$form->setMethod(\Zend_Form::METHOD_PUT);
 				$put = null;
 				parse_str($request->getRawBody(), $put);
