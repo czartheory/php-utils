@@ -11,7 +11,7 @@ use Doctrine\ORM\QueryBuilder;
  * Extends from the CUD, to add the 'R'
  * Keeps to entities, no fancy SQL stuff..
  *
- * @copyright Copyright (c) 2011 by CzarTheory, LLC.  All Rights Reserved.
+ * @copyright Copyright (c) 2012 by CzarTheory, LLC.  All Rights Reserved.
  * @author Matthew Larson <matthew@czarTheory.com>
  * @author Andrew Wheelwright <wheelwright.tech@gmail.com>
  */
@@ -77,12 +77,9 @@ abstract class AbstractRestfulRepository extends AbstractCudRepository
 	{
 		if(empty($criteria))
 		{
-			if ($this->_getIdColumnName() === 'id')
-			{
+			if ($this->_getIdColumnName() === 'id') {
 				return $this->find($identifier);
-			}
-			else
-			{
+			} else {
 				$criteria = array();
 			}
 		}
@@ -134,7 +131,7 @@ abstract class AbstractRestfulRepository extends AbstractCudRepository
 	 * @param int|null The starting offset at which records will be included in the result set.
 	 * @return ArrayCollection The matching entities.
 	 */
-	public function getAll(array $criteria = array(), array $orderBy = array(), $limit = null, $offset = null)
+	public function getAll(array $criteria = null, array $orderBy = null, $limit = null, $offset = null)
 	{
 		if (empty($criteria))
 		{
@@ -144,18 +141,15 @@ abstract class AbstractRestfulRepository extends AbstractCudRepository
 		$qb = $this->_getBaseAllQueryBuilder();
 		$this->_addCriteriaToBuilder($qb, 'e', $this->sanitizeQuery($criteria));
 
-		foreach ($orderBy as $sort => $order)
-		{
-			$qb->orderBy('e.' . $sort, $order);
+		if(null !== $orderBy){
+			foreach ($orderBy as $sort => $order) {$qb->orderBy('e.' . $sort, $order);}
 		}
 
-		if (null !== $offset)
-		{
+		if (null !== $offset) {
 			$qb->setFirstResult($offset);
 		}
 
-		if (null !== $limit)
-		{
+		if (null !== $limit) {
 			$qb->setMaxResults($limit);
 		}
 
