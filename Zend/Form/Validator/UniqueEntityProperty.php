@@ -27,6 +27,9 @@ class UniqueEntityProperty extends \Zend_Validate_Abstract
 	/** @var Entity */
 	protected $_entityId;
 
+	/** @var String */
+	protected $getIdProperty;
+
 	const MSG_UNIQUE = 'msgUnique';
 
 	protected $_messageTemplates = array(
@@ -41,11 +44,12 @@ class UniqueEntityProperty extends \Zend_Validate_Abstract
 	 * @param string $propertyName the property name in question
 	 * @param string $entityId (optional) the id of an existing entity (when modifying)
 	 */
-	public function __construct(EntityManager $em, $entityName, $propertyName, $entityId = null)
+	public function __construct(EntityManager $em, $entityName, $propertyName, $entityId = null, $getIdProperty = "getId")
 	{
 		$this->_repository = $em->getRepository($entityName);
 		$this->_propertyName = $propertyName;
 		$this->_entityId = $entityId;
+		$this->getIdProperty = $getIdProperty;
 	}
 
 	/**
@@ -73,8 +77,10 @@ class UniqueEntityProperty extends \Zend_Validate_Abstract
 
 		$existing = $this->_repository->findOneBy(array($this->_propertyName => $value));
 
+		$getId = $this->getIdProperty;
+
 		if($existing != null) {
-			if($existing->getId() == $this->_entityId) return true;
+			if($existing->$getId() == $this->_entityId) return true;
 			$this->_error(self::MSG_UNIQUE);
 			return false;
 		}

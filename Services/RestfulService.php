@@ -32,6 +32,17 @@ interface RestfulService
 	public function addCriteria(array $criteria);
 
 	/**
+	 * Erases previously set criteria.
+	 */
+	public function resetCriteria();
+
+	/**
+	 * Gets a value indicating whether the criteria has been set (i.e. not null or an empty array()).
+	 * @return boolean true if criteria was previously set, otherwise false.
+	 */
+	public function hasCriteria();
+
+	/**
 	 * Configures the ordering of subsequent getAll calls.
 	 * @param array $orderBy The associative array of columns mapped to 'ASC' or 'DESC' values.
 	 */
@@ -44,17 +55,6 @@ interface RestfulService
 	 * @param integer $offset The starting result of the records to return.
 	 */
 	public function setPagination($limit, $offset = 0);
-
-	/**
-	 * Gets a value indicating whether the criteria has been set (i.e. not null or an empty array()).
-	 * @return boolean true if criteria was previously set, otherwise false.
-	 */
-	public function hasCriteria();
-
-	/**
-	 * Erases previously set criteria.
-	 */
-	public function resetCriteria();
 
 	/**
 	 * Retrieves an object from the collection, wrapped as a ProtectedObject
