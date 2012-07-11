@@ -22,8 +22,8 @@
 namespace CzarTheory\Doctrine\ORM\Tools\Console\Command;
 
 use CzarTheory\Doctrine\ORM\Tools\EntityGenerator;
+use CzarTheory\Doctrine\ORM\Tools\DisconnectedClassMetadataFactory;
 use Doctrine\ORM\Tools\Console\MetadataFilter;
-use Doctrine\ORM\Tools\DisconnectedClassMetadataFactory;
 use Symfony\Component\Console;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;

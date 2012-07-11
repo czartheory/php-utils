@@ -117,7 +117,7 @@ public function <methodName>()
  * @param <variableType>$<variableName>
  * @return <entity>
  */
-public function <methodName>(<methodTypeHint>$<variableName><variableDefault>)
+public function <methodName>(<methodTypeHint>$<variableName><nullable><variableDefault>)
 {
 <spaces>$this-><fieldName> = $<variableName>;
 <spaces>return $this;
@@ -798,9 +798,10 @@ public function <methodName>()
 			'<variableType>'	=> $variableType,
 			'<variableName>'	=> $variableName,
 			'<methodName>'		=> $methodName,
+			'<nullable>'		=> $nullableClause,
 			'<fieldName>'		=> $fieldName,
-          	'<variableDefault>' => ($defaultValue !== null ) ? (' = '.$defaultValue) : $nullableClause,
-          	'<entity>'          => $this->_getClassName($metadata)
+          '<variableDefault>'   => ($defaultValue !== null ) ? (' = '.$defaultValue) : '',
+          '<entity>'            => $this->_getClassName($metadata)
         );
 
         $method = str_replace(
