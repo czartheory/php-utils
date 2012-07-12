@@ -32,10 +32,10 @@ abstract class AbstractRestfulController extends \Zend_Controller_Action
 		$method = strtolower($request->getMethod());
 		$view = $this->view;
 		$this->_httpMethod = $method;
-		$view->restfulService = $service;
 
 		switch ($method) {
 			case 'get':
+		        $view->restfulService = $service;
 				$query = $request->getQuery();
 
 				// Convert values from their string representations
