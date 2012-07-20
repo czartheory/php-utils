@@ -251,10 +251,13 @@ abstract class AbstractNativeRestfulRepository extends AbstractCudRepository
 		if (isset($query['sort']))
 		{
 			$parts[] = 'ORDER BY';
+            $sort = array();
 			foreach ($query['sort'] as $field => $direction)
 			{
-				$parts[] = sprintf('e.%s %s', $field, $direction);
+                $sort[] = sprintf('e.%s %s', $field, $direction);
 			}
+
+            $parts[] = implode(', ', $sort);
 		}
 
 		if (isset($query['limit']))

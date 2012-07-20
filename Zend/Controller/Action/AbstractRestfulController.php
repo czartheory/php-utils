@@ -58,7 +58,7 @@ abstract class AbstractRestfulController extends \Zend_Controller_Action
 					$orderBy = array();
 					$sorts = $query['sort'];
 					if (!is_array($sorts)) {
-						$sorts = array($sorts);
+                        $sorts = explode(',', $sorts);
 					}
 
 					foreach ($sorts as $ordering) {
