@@ -178,7 +178,7 @@ abstract class AbstractRestfulRepository extends AbstractCudRepository
 	}
 
 	/**
-	 * @return type array the mapping metadata to sanitize queries
+	 * @return array the mapping metadata to sanitize queries
 	 */
 	protected function _getQueryMapping()
 	{
