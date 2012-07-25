@@ -517,30 +517,25 @@ abstract class AbstractRestfulRepository extends AbstractCudRepository
 	 */
 	protected final function _wrapValue(ArrayCollection $types, $position, $value)
 	{
-		if (is_object($value))
-		{
+        $type = null;
+		if (is_object($value)) {
 			return $this->_wrapValue($types, $position, $value->getId());
-		}
-		elseif (is_string($value))
-		{
+
+		} elseif (is_string($value)) {
 //			$value = '\'' . addslashes($value) . '\'';
 			$type = \PDO::PARAM_STR;
-		}
-		elseif (is_bool($value))
-		{
+
+		} elseif (is_bool($value)) {
 			$value = $value ? 1 : 0;
 			$type = Type::INTEGER;
-		}
-		elseif (is_int($value))
-		{
+
+		} elseif (is_int($value)) {
 			$type = Type::INTEGER;
-		}
-		elseif ($value instanceof \DateTime)
-		{
+
+		} elseif ($value instanceof \DateTime) {
 			$type = Type::DATETIME;
-		}
-		elseif (is_array($value))
-		{
+
+		} elseif (is_array($value)) {
 			$type = is_integer($value[key($value)]) ? Connection::PARAM_INT_ARRAY : Connection::PARAM_STR_ARRAY;
 		}
 
