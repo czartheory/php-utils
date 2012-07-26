@@ -132,7 +132,7 @@ abstract class AbstractCudRepository extends EntityRepository
 	{
 		$entity = $this->_newEntity();
 		$this->_preCreate($entity, $values);
-		self::_saveEntity($entity, $values, $this->_localCreateAttributes, $this->_foreignCreateAttributes);
+		$this->_saveEntity($entity, $values, $this->_localCreateAttributes, $this->_foreignCreateAttributes);
 		$this->_postCreate($entity, $values);
 		$this->_em->persist($entity);
 		return $entity;
@@ -154,7 +154,7 @@ abstract class AbstractCudRepository extends EntityRepository
 	public function update($entity, array $values)
 	{
 		$this->_preUpdate($entity, $values);
-		self::_saveEntity($entity, $values, $this->_localUpdateAttributes, $this->_foreignUpdateAttributes);
+		$this->_saveEntity($entity, $values, $this->_localUpdateAttributes, $this->_foreignUpdateAttributes);
 		$this->_postUpdate($entity, $values);
 		$this->_em->persist($entity);
 		return $entity;
@@ -180,7 +180,7 @@ abstract class AbstractCudRepository extends EntityRepository
 	 * @param array $localKeys the local-attribute array
 	 * @param array $foreignKeys the foreign-attribute array
 	 */
-	private function _saveEntity($entity, array $values, array &$localKeys, array &$foreignKeys)
+	protected final function _saveEntity($entity, array $values, array &$localKeys, array &$foreignKeys)
 	{
 		foreach ($localKeys as $key => $method)
 		{
