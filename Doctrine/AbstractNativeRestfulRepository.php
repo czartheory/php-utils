@@ -77,8 +77,7 @@ abstract class AbstractNativeRestfulRepository extends AbstractCudRepository
 	 */
 	public function get($identifier, array $criteria = null)
 	{
-		if (null === $criteria)
-		{
+		if (empty($criteria)) {
 			return $this->find($identifier);
 		}
 
